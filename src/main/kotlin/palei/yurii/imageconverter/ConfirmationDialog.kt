@@ -2,49 +2,245 @@ package palei.yurii.imageconverter
 
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.DialogWrapper
-import com.intellij.openapi.vfs.VirtualFile
-import com.intellij.ui.components.JBCheckBox
 import com.intellij.ui.components.JBScrollPane
-import javax.swing.BoxLayout
+import com.intellij.ui.components.JBCheckBox
+import com.intellij.openapi.vfs.VirtualFile
 import javax.swing.JComponent
 import javax.swing.JPanel
+import javax.swing.table.AbstractTableModel
+import javax.imageio.ImageIO
+import javax.imageio.IIOImage
+import javax.imageio.ImageWriteParam
+import javax.imageio.ImageWriter
+import java.awt.BorderLayout
+import java.awt.Dimension
+import java.awt.image.BufferedImage
+import java.io.ByteArrayOutputStream
+import java.text.DecimalFormat
+import java.util.concurrent.Executors
+import javax.swing.JTable
+import javax.swing.SwingUtilities
+import javax.swing.table.DefaultTableCellRenderer
+import javax.swing.event.ChangeListener
 
 class ConfirmationDialog(
     project: Project?,
     private val files: List<VirtualFile>
 ) : DialogWrapper(project) {
-
-    private val checkBoxMap = mutableMapOf<VirtualFile, JBCheckBox>()
+    private val fileDataList = mutableListOf<FileData>()
+    private val tableModel = FileTableModel()
+    private val decimalFormat = DecimalFormat("#.##")
     private lateinit var selectAllCheckBox: JBCheckBox
+    private var isUpdatingSelectAllCheckBox = false // Флаг для предотвращения циклических вызовов
 
     init {
         init()
         title = "Confirm Conversion"
+
+        // Подготовка данных о файлах
+        files.forEach { file ->
+            val fileSize = file.length
+            val fileData = FileData(
+                file = file,
+                selected = true,
+                fileSize = fileSize,
+                estimatedSize = null,
+                reductionPercentage = null,
+                status = "Estimating..."
+            )
+            fileDataList.add(fileData)
+        }
+
+        // Запускаем оценку размеров в фоновом режиме
+        estimateSizesInBackground()
     }
 
     override fun createCenterPanel(): JComponent? {
-        val panel = JPanel()
-        panel.layout = BoxLayout(panel, BoxLayout.Y_AXIS)
+        val panel = JPanel(BorderLayout())
 
+        // Чекбокс "Select All"
         selectAllCheckBox = JBCheckBox("Select All", true)
-        selectAllCheckBox.addActionListener {
-            val selected = selectAllCheckBox.isSelected
-            checkBoxMap.values.forEach { it.isSelected = selected }
+        selectAllCheckBox.addChangeListener {
+            if (!isUpdatingSelectAllCheckBox) {
+                val selected = selectAllCheckBox.isSelected
+                fileDataList.forEachIndexed { index, fileData ->
+                    fileData.selected = selected
+                    tableModel.fireTableCellUpdated(index, 0)
+                }
+            }
         }
-        panel.add(selectAllCheckBox)
+        panel.add(selectAllCheckBox, BorderLayout.NORTH)
 
-        files.forEach { file ->
-            val checkBox = JBCheckBox(file.name, true)
-            checkBoxMap[file] = checkBox
-            panel.add(checkBox)
-        }
+        val table = JTable(tableModel)
+        table.preferredScrollableViewportSize = Dimension(600, 400)
+        table.fillsViewportHeight = true
 
-        val scrollPane = JBScrollPane(panel)
-        scrollPane.preferredSize = java.awt.Dimension(400, 300)
-        return scrollPane
+        // Настройка рендереров и колонок
+        val centerRenderer = DefaultTableCellRenderer()
+        centerRenderer.horizontalAlignment = javax.swing.JLabel.CENTER
+        table.columnModel.getColumn(2).cellRenderer = centerRenderer
+        table.columnModel.getColumn(3).cellRenderer = centerRenderer
+        table.columnModel.getColumn(4).cellRenderer = centerRenderer
+
+        table.columnModel.getColumn(0).preferredWidth = 50  // Select
+        table.columnModel.getColumn(1).preferredWidth = 250 // File Name
+        table.columnModel.getColumn(2).preferredWidth = 100 // Current Size
+        table.columnModel.getColumn(3).preferredWidth = 100 // Estimated Size
+        table.columnModel.getColumn(4).preferredWidth = 100 // Reduction
+
+        val scrollPane = JBScrollPane(table)
+        panel.add(scrollPane, BorderLayout.CENTER)
+
+        return panel
     }
 
     fun getSelectedFiles(): List<VirtualFile> {
-        return checkBoxMap.filter { it.value.isSelected }.map { it.key }
+        return fileDataList.filter { it.selected }.map { it.file }
     }
+
+    private fun estimateSizesInBackground() {
+        val executor = Executors.newFixedThreadPool(5)
+        fileDataList.forEachIndexed { index, fileData ->
+            executor.submit {
+                val file = fileData.file
+                if (isSupportedImage(file.extension?.lowercase())) {
+                    val estimatedSize = estimateWebPSize(file)
+                    fileData.estimatedSize = estimatedSize
+                    if (estimatedSize != null) {
+                        fileData.reductionPercentage =
+                            ((fileData.fileSize - estimatedSize) / fileData.fileSize.toDouble()) * 100
+                        fileData.status = "Estimated"
+                    } else {
+                        fileData.status = "Error"
+                    }
+                } else {
+                    fileData.status = "Unsupported"
+                }
+                // Обновляем таблицу в EDT
+                SwingUtilities.invokeLater {
+                    tableModel.fireTableRowsUpdated(index, index)
+                }
+            }
+        }
+        executor.shutdown()
+    }
+
+    private fun formatSize(sizeInBytes: Long?): String {
+        if (sizeInBytes == null) return "N/A"
+        val kb = sizeInBytes / 1024.0
+        val mb = kb / 1024.0
+        return when {
+            mb >= 1 -> "${decimalFormat.format(mb)} MB"
+            kb >= 1 -> "${decimalFormat.format(kb)} KB"
+            else -> "$sizeInBytes B"
+        }
+    }
+
+    private fun formatPercentage(value: Double?): String {
+        if (value == null) return "N/A"
+        return "${decimalFormat.format(value)}%"
+    }
+
+    private fun isSupportedImage(extension: String?): Boolean {
+        val supportedExtensions = setOf("jpg", "jpeg", "png")
+        return extension != null && extension in supportedExtensions
+    }
+
+    private fun estimateWebPSize(file: VirtualFile): Long? {
+        return try {
+            val inputStream = file.inputStream
+            val bufferedImage: BufferedImage = ImageIO.read(inputStream)
+            inputStream.close()
+
+            val byteArrayOutputStream = ByteArrayOutputStream()
+            val writers = ImageIO.getImageWritersByFormatName("webp")
+            if (!writers.hasNext()) {
+                return null
+            }
+            val writer: ImageWriter = writers.next()
+            val writeParam: ImageWriteParam = writer.defaultWriteParam
+            // Можно установить качество компрессии, если нужно
+
+            val ios = ImageIO.createImageOutputStream(byteArrayOutputStream)
+            writer.output = ios
+            writer.write(null, IIOImage(bufferedImage, null, null), writeParam)
+            ios.close()
+            writer.dispose()
+
+            byteArrayOutputStream.size().toLong()
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
+        }
+    }
+
+    inner class FileTableModel : AbstractTableModel() {
+        private val columnNames = arrayOf("Select", "File Name", "Current Size", "Estimated Size", "Reduction")
+
+        override fun getRowCount(): Int = fileDataList.size
+
+        override fun getColumnCount(): Int = columnNames.size
+
+        override fun getColumnName(column: Int): String = columnNames[column]
+
+        override fun getColumnClass(columnIndex: Int): Class<*> {
+            return when (columnIndex) {
+                0 -> java.lang.Boolean::class.java
+                else -> String::class.java
+            }
+        }
+
+        override fun isCellEditable(rowIndex: Int, columnIndex: Int): Boolean {
+            return columnIndex == 0
+        }
+
+        override fun getValueAt(rowIndex: Int, columnIndex: Int): Any? {
+            val fileData = fileDataList[rowIndex]
+            return when (columnIndex) {
+                0 -> fileData.selected
+                1 -> fileData.file.name
+                2 -> formatSize(fileData.fileSize)
+                3 -> when (fileData.status) {
+                    "Estimating..." -> "Estimating..."
+                    "Error" -> "Error"
+                    else -> formatSize(fileData.estimatedSize)
+                }
+
+                4 -> when (fileData.status) {
+                    "Estimating..." -> "Estimating..."
+                    "Error" -> "Error"
+                    else -> formatPercentage(fileData.reductionPercentage)
+                }
+
+                else -> null
+            }
+        }
+
+        override fun setValueAt(aValue: Any?, rowIndex: Int, columnIndex: Int) {
+            if (columnIndex == 0) {
+                fileDataList[rowIndex].selected = aValue as Boolean
+                fireTableCellUpdated(rowIndex, columnIndex)
+                // Обновляем состояние чекбокса "Select All"
+                updateSelectAllCheckBox()
+            }
+        }
+
+        private fun updateSelectAllCheckBox() {
+            val allSelected = fileDataList.all { it.selected }
+            val noneSelected = fileDataList.none { it.selected }
+
+            isUpdatingSelectAllCheckBox = true
+            selectAllCheckBox.isSelected = allSelected
+            isUpdatingSelectAllCheckBox = false
+        }
+    }
+
+    data class FileData(
+        val file: VirtualFile,
+        var selected: Boolean,
+        val fileSize: Long,
+        var estimatedSize: Long?,
+        var reductionPercentage: Double?,
+        var status: String
+    )
 }
