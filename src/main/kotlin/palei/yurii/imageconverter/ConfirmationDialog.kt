@@ -58,16 +58,13 @@ class ConfirmationDialog(
             fileDataList.add(fileData)
         }
 
-        // Start estimating sizes in background
         estimateSizesInBackground()
-
         updateOkButton();
     }
 
     override fun createCenterPanel(): JComponent? {
         val panel = JPanel(BorderLayout())
 
-        // Select All checkbox
         selectAllCheckBox = JBCheckBox("Select All", true)
         selectAllCheckBox.addChangeListener {
             if (!isUpdatingSelectAllCheckBox) {
@@ -85,7 +82,6 @@ class ConfirmationDialog(
         table.preferredScrollableViewportSize = Dimension(600, 400)
         table.fillsViewportHeight = true
 
-        // Center align columns
         val centerRenderer = DefaultTableCellRenderer()
         centerRenderer.horizontalAlignment = javax.swing.JLabel.CENTER
         table.columnModel.getColumn(2).cellRenderer = centerRenderer
@@ -136,7 +132,6 @@ class ConfirmationDialog(
                 } else {
                     fileData.status = "Unsupported"
                 }
-                // Update table row
                 SwingUtilities.invokeLater {
                     tableModel.fireTableRowsUpdated(index, index)
                 }
@@ -179,7 +174,6 @@ class ConfirmationDialog(
             }
             val writer: ImageWriter = writers.next()
             val writeParam: ImageWriteParam = writer.defaultWriteParam
-            // Set compression quality to 1 (highest)
 
             val ios = ImageIO.createImageOutputStream(byteArrayOutputStream)
             writer.output = ios
@@ -240,7 +234,6 @@ class ConfirmationDialog(
             if (columnIndex == 0) {
                 fileDataList[rowIndex].selected = aValue as Boolean
                 fireTableCellUpdated(rowIndex, columnIndex)
-                // Update Select All checkbox
                 updateSelectAllCheckBox()
                 updateOkButton()
             }

@@ -28,16 +28,12 @@ class ConvertToWebPAction : AnAction() {
         val presentation = e.presentation
 
         if (files == null || files.isEmpty()) {
-            // No files selected, disable and hide the action
             presentation.isEnabledAndVisible = false
         } else {
-            // Check if there are any directories among selected files
             val hasDirectory = files.any { it.isDirectory }
             if (hasDirectory) {
-                // At least one selected item is a directory, disable and hide the action
                 presentation.isEnabledAndVisible = false
             } else {
-                // All selected items are files, enable the action
                 presentation.isEnabledAndVisible = true
             }
         }
@@ -48,10 +44,8 @@ class ConvertToWebPAction : AnAction() {
         if (allFiles != null && allFiles.isNotEmpty()) {
             val project = e.project
 
-            // Show confirmation dialog
             val dialog = ConfirmationDialog(project, allFiles.toList(), MAX_FILES)
             if (dialog.showAndGet()) {
-                // User clicked "Confirm"
                 val selectedFiles = dialog.getSelectedFiles()
                 if (selectedFiles.isEmpty()) {
                     Messages.showInfoMessage("No files selected for conversion.", "Information")
@@ -67,7 +61,6 @@ class ConvertToWebPAction : AnAction() {
                 }
 
                 object : Task.Backgroundable(project, "Converting to WebP", true) {
-                    // Thread-safe list for failed files
                     private val failedFiles = CopyOnWriteArrayList<String>()
 
                     override fun run(indicator: ProgressIndicator) {
@@ -92,7 +85,6 @@ class ConvertToWebPAction : AnAction() {
                                             virtualOutputFile?.refresh(false, false)
                                         } catch (ex: Exception) {
                                             ex.printStackTrace()
-                                            // Add failed file to the list
                                             failedFiles.add("${inputFile.name}: Conversion error (${ex.message})")
                                         } finally {
                                             synchronized(indicator) {
@@ -103,7 +95,6 @@ class ConvertToWebPAction : AnAction() {
                                         }
                                     }
                                 } else {
-                                    // File has unsupported format
                                     failedFiles.add("${inputFile.name}: Unsupported format")
                                     synchronized(indicator) {
                                         processedFiles++
@@ -112,7 +103,6 @@ class ConvertToWebPAction : AnAction() {
                                     }
                                 }
                             } else {
-                                // Skip directories or handle recursively if needed
                                 synchronized(indicator) {
                                     processedFiles++
                                     indicator.fraction = processedFiles.toDouble() / totalFiles
@@ -135,7 +125,6 @@ class ConvertToWebPAction : AnAction() {
                     }
 
                     override fun onSuccess() {
-                        // Show message to the user
                         if (failedFiles.isNotEmpty()) {
                             val messageBuilder = StringBuilder("Conversion completed with errors.\n\nIssues occurred with the following files:\n")
                             failedFiles.forEach { fileInfo ->
@@ -176,7 +165,6 @@ class ConvertToWebPAction : AnAction() {
     }
 
     companion object {
-        // Initialize logger
         private val logger = com.intellij.openapi.diagnostic.Logger.getInstance(ConvertToWebPAction::class.java)
     }
 }
