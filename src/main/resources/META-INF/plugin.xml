@@ -5,17 +5,122 @@
 
     <!-- Public plugin name should be written in Title Case.
          Guidelines: https://plugins.jetbrains.com/docs/marketplace/plugin-overview-page.html#plugin-name -->
-    <name>Image-converter</name>
+    <name>Image to WebP Converter</name>
 
     <!-- A displayed Vendor name or Organization ID displayed on the Plugins Page. -->
-    <vendor email="poley.yuri@gmail.com">YuriiPalei</vendor>
+    <vendor email="poley.yuri@gmail.com">Petlyra</vendor>
 
     <!-- Description of the plugin displayed on the Plugin Page and IDE Plugin Manager.
          Simple HTML elements (text formatting, paragraphs, and lists) can be added inside of <![CDATA[ ]]> tag.
          Guidelines: https://plugins.jetbrains.com/docs/marketplace/plugin-overview-page.html#plugin-description -->
-    <description>
-        Image converter plugin for WebStorm IDE that allows you to convert images to WEBp format.
-    </description>
+    <description><![CDATA[
+<h2>Plugin Name: Image to WebP Converter</h2>
+
+<h3>Description:</h3>
+<p>
+Image to WebP Converter is a plugin for WebStorm and other IntelliJ-based IDEs that allows you to convert JPEG and PNG images to WebP format directly within your development environment. The plugin integrates seamlessly into the context menu, making the conversion process quick and convenient.
+</p>
+
+<h3>Key Features:</h3>
+<ul>
+  <li><strong>Convert Images to WebP:</strong>
+    <ul>
+      <li>Transform selected JPEG and PNG images into WebP format.</li>
+      <li>Quick access through the project's context menu.</li>
+    </ul>
+  </li>
+  <li><strong>Batch File Processing:</strong>
+    <ul>
+      <li>Convert up to 5 files simultaneously.</li>
+      <li>Select specific files for conversion using a user-friendly interface.</li>
+    </ul>
+  </li>
+  <li><strong>File Size Preview:</strong>
+    <ul>
+      <li>Display the current size of each file.</li>
+      <li>Estimate the expected size after conversion.</li>
+      <li>Calculate the percentage of size reduction for each file.</li>
+    </ul>
+  </li>
+  <li><strong>Automatic File System Refresh:</strong>
+    <ul>
+      <li>New files automatically appear in the project after conversion.</li>
+      <li>No need to manually refresh or reload the project.</li>
+    </ul>
+  </li>
+</ul>
+
+<h3>How to Use the Plugin:</h3>
+<ol>
+  <li><strong>Install the Plugin:</strong>
+    <ul>
+      <li>Install the plugin via the IDE settings (<em>Settings → Plugins → Install Plugin from Disk</em>) or download it from the JetBrains Marketplace.</li>
+    </ul>
+  </li>
+  <li><strong>Select Files for Conversion:</strong>
+    <ul>
+      <li>In the project window, select 1 to 5 JPEG or PNG image files.</li>
+    </ul>
+  </li>
+  <li><strong>Start Conversion:</strong>
+    <ul>
+      <li>Right-click on the selected files.</li>
+      <li>Choose <em>Convert to WebP</em> from the context menu.</li>
+    </ul>
+  </li>
+  <li><strong>Confirm and Customize:</strong>
+    <ul>
+      <li>In the confirmation window, you'll see a list of selected files.</li>
+      <li>For each file, the current size, estimated size after conversion, and percentage reduction are displayed.</li>
+      <li>You can uncheck files you do not wish to convert.</li>
+      <li>Click <em>OK</em> to start the conversion or <em>Cancel</em> to abort.</li>
+    </ul>
+  </li>
+  <li><strong>Result:</strong>
+    <ul>
+      <li>Upon completion, new <code>.webp</code> files will appear in the same directories.</li>
+      <li>If any errors occur, you'll receive detailed information about them.</li>
+    </ul>
+  </li>
+</ol>
+
+<h3>Benefits of Using:</h3>
+<ul>
+  <li><strong>Improved Web Application Performance:</strong>
+    <ul>
+      <li>WebP format offers better compression without quality loss, speeding up page load times.</li>
+    </ul>
+  </li>
+  <li><strong>Workflow Integration:</strong>
+    <ul>
+      <li>Convert images without leaving your development environment.</li>
+    </ul>
+  </li>
+  <li><strong>Time Savings:</strong>
+    <ul>
+      <li>Batch processing and multithreading accelerate the conversion process.</li>
+    </ul>
+  </li>
+</ul>
+
+<h3>Limitations:</h3>
+<ul>
+  <li>Maximum of 5 files can be converted at once.</li>
+  <li>Only JPEG and PNG image formats are supported.</li>
+  <li>The <em>Convert to WebP</em> action is not available for directories or other file types.</li>
+</ul>
+
+<h3>Requirements:</h3>
+<ul>
+  <li><strong>IDE:</strong> WebStorm or another IntelliJ Platform-based IDE version 2020.1 or higher.</li>
+  <li><strong>JDK:</strong> Version 8 or higher.</li>
+</ul>
+
+<h3>Feedback:</h3>
+<p>
+If you have suggestions for improving the plugin or encounter any issues, please contact us via email at <a href="mailto:poley.yuri@gmail.com">poley.yuri@gmail.com</a>.
+</p>
+]]></description>
 
     <!-- Product and plugin compatibility requirements.
          Read more: https://plugins.jetbrains.com/docs/intellij/plugin-compatibility.html -->

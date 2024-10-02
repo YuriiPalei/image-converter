@@ -6,6 +6,7 @@ import com.intellij.openapi.actionSystem.CommonDataKeys
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.progress.Task
 import com.intellij.openapi.ui.Messages
+import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.openapi.vfs.VirtualFile
 import java.io.File
 import java.util.concurrent.CopyOnWriteArrayList
@@ -14,6 +15,26 @@ import java.util.concurrent.TimeUnit
 
 class ConvertToWebPAction : AnAction() {
     private val MAX_FILES = 5
+
+    override fun update(e: AnActionEvent) {
+        val files = e.getData(CommonDataKeys.VIRTUAL_FILE_ARRAY)
+        val presentation = e.presentation
+
+        if (files == null || files.isEmpty()) {
+            // No files selected, disable and hide the action
+            presentation.isEnabledAndVisible = false
+        } else {
+            // Check if there are any directories among selected files
+            val hasDirectory = files.any { it.isDirectory }
+            if (hasDirectory) {
+                // At least one selected item is a directory, disable and hide the action
+                presentation.isEnabledAndVisible = false
+            } else {
+                // All selected items are files, enable the action
+                presentation.isEnabledAndVisible = true
+            }
+        }
+    }
 
     override fun actionPerformed(e: AnActionEvent) {
         val allFiles: Array<VirtualFile>? = e.getData(CommonDataKeys.VIRTUAL_FILE_ARRAY)
@@ -58,6 +79,10 @@ class ConvertToWebPAction : AnAction() {
                                     executor.submit {
                                         try {
                                             WebPConverter.convertToWebP(inputFile, outputFile)
+
+                                            val localFileSystem = LocalFileSystem.getInstance()
+                                            val virtualOutputFile = localFileSystem.refreshAndFindFileByIoFile(outputFile)
+                                            virtualOutputFile?.refresh(false, false)
                                         } catch (ex: Exception) {
                                             ex.printStackTrace()
                                             // Add failed file to the list
@@ -94,6 +119,11 @@ class ConvertToWebPAction : AnAction() {
                         } catch (ex: InterruptedException) {
                             Thread.currentThread().interrupt()
                             logger.warn("Waiting for thread pool termination was interrupted", ex)
+                        }
+
+                        val projectBaseDir = project?.baseDir
+                        if (projectBaseDir != null) {
+                            projectBaseDir.refresh(false, true)
                         }
                     }
 
