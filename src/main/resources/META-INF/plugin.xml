@@ -28,8 +28,8 @@
     </extensions>
 
     <actions>
-        <action id="ConvertToWebPAction" class="palei.yurii.imageconverter.ConvertToWebPAction" text="Конвертировать в WebP"
-                description="Конвертировать изображение в формат WebP">
+        <action id="ConvertToWebPAction" class="palei.yurii.imageconverter.ConvertToWebPAction" text="Convert to WebP"
+                description="Convert images to WebP format">
             <add-to-group group-id="ProjectViewPopupMenu" anchor="after" relative-to-action="OpenFile"/>
         </action>
     </actions>

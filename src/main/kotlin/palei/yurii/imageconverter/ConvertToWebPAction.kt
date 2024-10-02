@@ -18,18 +18,18 @@ class ConvertToWebPAction : AnAction() {
         if (allFiles != null && allFiles.isNotEmpty()) {
             val project = e.project
 
-            // Открываем диалог подтверждения
+            // Show confirmation dialog
             val dialog = ConfirmationDialog(project, allFiles.toList())
             if (dialog.showAndGet()) {
-                // Пользователь нажал "Подтвердить"
+                // User clicked "Confirm"
                 val selectedFiles = dialog.getSelectedFiles()
                 if (selectedFiles.isEmpty()) {
-                    Messages.showInfoMessage("Нет выбранных файлов для конвертации.", "Информация")
+                    Messages.showInfoMessage("No files selected for conversion.", "Information")
                     return
                 }
 
-                object : Task.Backgroundable(project, "Конвертация в WebP", true) {
-                    // Потокобезопасный список для неудавшихся файлов
+                object : Task.Backgroundable(project, "Converting to WebP", true) {
+                    // Thread-safe list for failed files
                     private val failedFiles = CopyOnWriteArrayList<String>()
 
                     override fun run(indicator: ProgressIndicator) {
@@ -50,31 +50,31 @@ class ConvertToWebPAction : AnAction() {
                                             WebPConverter.convertToWebP(inputFile, outputFile)
                                         } catch (ex: Exception) {
                                             ex.printStackTrace()
-                                            // Добавляем имя неудавшегося файла в список
-                                            failedFiles.add("${inputFile.name}: Ошибка при конвертации (${ex.message})")
+                                            // Add failed file to the list
+                                            failedFiles.add("${inputFile.name}: Conversion error (${ex.message})")
                                         } finally {
                                             synchronized(indicator) {
                                                 processedFiles++
                                                 indicator.fraction = processedFiles.toDouble() / totalFiles
-                                                indicator.text = "Обработано файлов: $processedFiles из $totalFiles"
+                                                indicator.text = "Processed files: $processedFiles of $totalFiles"
                                             }
                                         }
                                     }
                                 } else {
-                                    // Файл имеет неподдерживаемый формат
-                                    failedFiles.add("${inputFile.name}: Неподдерживаемый формат")
+                                    // File has unsupported format
+                                    failedFiles.add("${inputFile.name}: Unsupported format")
                                     synchronized(indicator) {
                                         processedFiles++
                                         indicator.fraction = processedFiles.toDouble() / totalFiles
-                                        indicator.text = "Обработано файлов: $processedFiles из $totalFiles"
+                                        indicator.text = "Processed files: $processedFiles of $totalFiles"
                                     }
                                 }
                             } else {
-                                // Пропускаем директории или обрабатываем рекурсивно, если необходимо
+                                // Skip directories or handle recursively if needed
                                 synchronized(indicator) {
                                     processedFiles++
                                     indicator.fraction = processedFiles.toDouble() / totalFiles
-                                    indicator.text = "Обработано файлов: $processedFiles из $totalFiles"
+                                    indicator.text = "Processed files: $processedFiles of $totalFiles"
                                 }
                             }
                         }
@@ -83,33 +83,33 @@ class ConvertToWebPAction : AnAction() {
                             executor.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS)
                         } catch (ex: InterruptedException) {
                             Thread.currentThread().interrupt()
-                            logger.warn("Ожидание завершения потоков было прервано", ex)
+                            logger.warn("Waiting for thread pool termination was interrupted", ex)
                         }
                     }
 
                     override fun onSuccess() {
-                        // Формируем сообщение для пользователя
+                        // Show message to the user
                         if (failedFiles.isNotEmpty()) {
-                            val messageBuilder = StringBuilder("Конвертация завершена с ошибками.\n\nПроблемы возникли со следующими файлами:\n")
+                            val messageBuilder = StringBuilder("Conversion completed with errors.\n\nIssues occurred with the following files:\n")
                             failedFiles.forEach { fileInfo ->
                                 messageBuilder.append("- $fileInfo\n")
                             }
-                            Messages.showWarningDialog(messageBuilder.toString(), "Конвертация завершена")
+                            Messages.showWarningDialog(messageBuilder.toString(), "Conversion Completed")
                         } else {
-                            Messages.showInfoMessage("Все файлы успешно конвертированы.", "Конвертация завершена")
+                            Messages.showInfoMessage("All files have been successfully converted.", "Conversion Completed")
                         }
                     }
 
                     override fun onThrowable(error: Throwable) {
-                        Messages.showErrorDialog("Ошибка при конвертации: ${error.message}", "Ошибка")
+                        Messages.showErrorDialog("Error during conversion: ${error.message}", "Error")
                     }
                 }.queue()
             } else {
-                // Пользователь нажал "Отмена"
-                // Ничего не делаем
+                // User clicked "Cancel"
+                // Do nothing
             }
         } else {
-            Messages.showErrorDialog("Пожалуйста, выберите один или несколько файлов изображений.", "Файлы не выбраны")
+            Messages.showErrorDialog("Please select one or more image files.", "No Files Selected")
         }
     }
 
@@ -129,7 +129,7 @@ class ConvertToWebPAction : AnAction() {
     }
 
     companion object {
-        // Инициализируем логгер
+        // Initialize logger
         private val logger = com.intellij.openapi.diagnostic.Logger.getInstance(ConvertToWebPAction::class.java)
     }
 }

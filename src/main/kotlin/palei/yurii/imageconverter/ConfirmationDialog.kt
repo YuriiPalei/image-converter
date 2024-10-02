@@ -19,14 +19,14 @@ class ConfirmationDialog(
 
     init {
         init()
-        title = "Подтверждение конвертации"
+        title = "Confirm Conversion"
     }
 
     override fun createCenterPanel(): JComponent? {
         val panel = JPanel()
         panel.layout = BoxLayout(panel, BoxLayout.Y_AXIS)
 
-        selectAllCheckBox = JBCheckBox("Выделить все", true)
+        selectAllCheckBox = JBCheckBox("Select All", true)
         selectAllCheckBox.addActionListener {
             val selected = selectAllCheckBox.isSelected
             checkBoxMap.values.forEach { it.isSelected = selected }
