@@ -2,42 +2,42 @@ package palei.yurii.imageconverter
 
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.DialogWrapper
-import com.intellij.ui.components.JBScrollPane
-import com.intellij.ui.components.JBCheckBox
 import com.intellij.openapi.vfs.VirtualFile
-import javax.swing.JComponent
-import javax.swing.JPanel
-import javax.swing.table.AbstractTableModel
-import javax.imageio.ImageIO
-import javax.imageio.IIOImage
-import javax.imageio.ImageWriteParam
-import javax.imageio.ImageWriter
+import com.intellij.ui.components.JBCheckBox
+import com.intellij.ui.components.JBScrollPane
 import java.awt.BorderLayout
 import java.awt.Dimension
 import java.awt.image.BufferedImage
 import java.io.ByteArrayOutputStream
 import java.text.DecimalFormat
 import java.util.concurrent.Executors
+import javax.imageio.IIOImage
+import javax.imageio.ImageIO
+import javax.imageio.ImageWriteParam
+import javax.imageio.ImageWriter
+import javax.swing.JComponent
+import javax.swing.JPanel
 import javax.swing.JTable
 import javax.swing.SwingUtilities
+import javax.swing.table.AbstractTableModel
 import javax.swing.table.DefaultTableCellRenderer
-import javax.swing.event.ChangeListener
 
 class ConfirmationDialog(
     project: Project?,
-    private val files: List<VirtualFile>
+    private val files: List<VirtualFile>,
+    private val maxFiles: Int
 ) : DialogWrapper(project) {
     private val fileDataList = mutableListOf<FileData>()
     private val tableModel = FileTableModel()
     private val decimalFormat = DecimalFormat("#.##")
     private lateinit var selectAllCheckBox: JBCheckBox
-    private var isUpdatingSelectAllCheckBox = false // Флаг для предотвращения циклических вызовов
+    private var isUpdatingSelectAllCheckBox = false
 
     init {
         init()
         title = "Confirm Conversion"
 
-        // Подготовка данных о файлах
+        // Prepare data for the table
         files.forEach { file ->
             val fileSize = file.length
             val fileData = FileData(
@@ -51,14 +51,16 @@ class ConfirmationDialog(
             fileDataList.add(fileData)
         }
 
-        // Запускаем оценку размеров в фоновом режиме
+        // Start estimating sizes in background
         estimateSizesInBackground()
+
+        updateOkButton();
     }
 
     override fun createCenterPanel(): JComponent? {
         val panel = JPanel(BorderLayout())
 
-        // Чекбокс "Select All"
+        // Select All checkbox
         selectAllCheckBox = JBCheckBox("Select All", true)
         selectAllCheckBox.addChangeListener {
             if (!isUpdatingSelectAllCheckBox) {
@@ -67,6 +69,7 @@ class ConfirmationDialog(
                     fileData.selected = selected
                     tableModel.fireTableCellUpdated(index, 0)
                 }
+                updateOkButton()
             }
         }
         panel.add(selectAllCheckBox, BorderLayout.NORTH)
@@ -75,7 +78,7 @@ class ConfirmationDialog(
         table.preferredScrollableViewportSize = Dimension(600, 400)
         table.fillsViewportHeight = true
 
-        // Настройка рендереров и колонок
+        // Center align columns
         val centerRenderer = DefaultTableCellRenderer()
         centerRenderer.horizontalAlignment = javax.swing.JLabel.CENTER
         table.columnModel.getColumn(2).cellRenderer = centerRenderer
@@ -98,6 +101,16 @@ class ConfirmationDialog(
         return fileDataList.filter { it.selected }.map { it.file }
     }
 
+    private fun updateOkButton() {
+        val selectedCount = fileDataList.count { it.selected }
+        isOKActionEnabled = selectedCount <= maxFiles && selectedCount > 0
+        if (selectedCount > maxFiles) {
+            setErrorText("You can select up to $maxFiles files.")
+        } else {
+            setErrorText(null)
+        }
+    }
+
     private fun estimateSizesInBackground() {
         val executor = Executors.newFixedThreadPool(5)
         fileDataList.forEachIndexed { index, fileData ->
@@ -116,7 +129,7 @@ class ConfirmationDialog(
                 } else {
                     fileData.status = "Unsupported"
                 }
-                // Обновляем таблицу в EDT
+                // Update table row
                 SwingUtilities.invokeLater {
                     tableModel.fireTableRowsUpdated(index, index)
                 }
@@ -159,7 +172,7 @@ class ConfirmationDialog(
             }
             val writer: ImageWriter = writers.next()
             val writeParam: ImageWriteParam = writer.defaultWriteParam
-            // Можно установить качество компрессии, если нужно
+            // Set compression quality to 1 (highest)
 
             val ios = ImageIO.createImageOutputStream(byteArrayOutputStream)
             writer.output = ios
@@ -220,8 +233,9 @@ class ConfirmationDialog(
             if (columnIndex == 0) {
                 fileDataList[rowIndex].selected = aValue as Boolean
                 fireTableCellUpdated(rowIndex, columnIndex)
-                // Обновляем состояние чекбокса "Select All"
+                // Update Select All checkbox
                 updateSelectAllCheckBox()
+                updateOkButton()
             }
         }
 

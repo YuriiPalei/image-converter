@@ -13,13 +13,15 @@ import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 
 class ConvertToWebPAction : AnAction() {
+    private val MAX_FILES = 5
+
     override fun actionPerformed(e: AnActionEvent) {
         val allFiles: Array<VirtualFile>? = e.getData(CommonDataKeys.VIRTUAL_FILE_ARRAY)
         if (allFiles != null && allFiles.isNotEmpty()) {
             val project = e.project
 
             // Show confirmation dialog
-            val dialog = ConfirmationDialog(project, allFiles.toList())
+            val dialog = ConfirmationDialog(project, allFiles.toList(), MAX_FILES)
             if (dialog.showAndGet()) {
                 // User clicked "Confirm"
                 val selectedFiles = dialog.getSelectedFiles()
@@ -28,12 +30,20 @@ class ConvertToWebPAction : AnAction() {
                     return
                 }
 
+                if (selectedFiles.size > MAX_FILES) {
+                    Messages.showErrorDialog(
+                        "You have selected ${selectedFiles.size} files. The maximum number of files allowed is $MAX_FILES.",
+                        "File Limit Exceeded"
+                    )
+                    return
+                }
+
                 object : Task.Backgroundable(project, "Converting to WebP", true) {
                     // Thread-safe list for failed files
                     private val failedFiles = CopyOnWriteArrayList<String>()
 
                     override fun run(indicator: ProgressIndicator) {
-                        val executor = Executors.newFixedThreadPool(5)
+                        val executor = Executors.newFixedThreadPool(MAX_FILES)
                         val totalFiles = selectedFiles.size
                         var processedFiles = 0
 
