@@ -7,6 +7,7 @@
 
 package palei.yurii.imageconverter
 
+import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.CommonDataKeys
@@ -21,30 +22,30 @@ import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 
 class ConvertToWebPAction : AnAction() {
-    private val MAX_FILES = 5
+    private val maxFiles = 5
+
+    override fun getActionUpdateThread(): ActionUpdateThread {
+        return ActionUpdateThread.BGT
+    }
 
     override fun update(e: AnActionEvent) {
         val files = e.getData(CommonDataKeys.VIRTUAL_FILE_ARRAY)
         val presentation = e.presentation
 
-        if (files == null || files.isEmpty()) {
+        if (files.isNullOrEmpty()) {
             presentation.isEnabledAndVisible = false
         } else {
             val hasDirectory = files.any { it.isDirectory }
-            if (hasDirectory) {
-                presentation.isEnabledAndVisible = false
-            } else {
-                presentation.isEnabledAndVisible = true
-            }
+            presentation.isEnabledAndVisible = !hasDirectory
         }
     }
 
     override fun actionPerformed(e: AnActionEvent) {
         val allFiles: Array<VirtualFile>? = e.getData(CommonDataKeys.VIRTUAL_FILE_ARRAY)
-        if (allFiles != null && allFiles.isNotEmpty()) {
+        if (!allFiles.isNullOrEmpty()) {
             val project = e.project
 
-            val dialog = ConfirmationDialog(project, allFiles.toList(), MAX_FILES)
+            val dialog = ConfirmationDialog(project, allFiles.toList(), maxFiles)
             if (dialog.showAndGet()) {
                 val selectedFiles = dialog.getSelectedFiles()
                 if (selectedFiles.isEmpty()) {
@@ -52,9 +53,9 @@ class ConvertToWebPAction : AnAction() {
                     return
                 }
 
-                if (selectedFiles.size > MAX_FILES) {
+                if (selectedFiles.size > maxFiles) {
                     Messages.showErrorDialog(
-                        "You have selected ${selectedFiles.size} files. The maximum number of files allowed is $MAX_FILES.",
+                        "You have selected ${selectedFiles.size} files. The maximum number of files allowed is $maxFiles.",
                         "File Limit Exceeded"
                     )
                     return
@@ -64,7 +65,7 @@ class ConvertToWebPAction : AnAction() {
                     private val failedFiles = CopyOnWriteArrayList<String>()
 
                     override fun run(indicator: ProgressIndicator) {
-                        val executor = Executors.newFixedThreadPool(MAX_FILES)
+                        val executor = Executors.newFixedThreadPool(maxFiles)
                         val totalFiles = selectedFiles.size
                         var processedFiles = 0
 

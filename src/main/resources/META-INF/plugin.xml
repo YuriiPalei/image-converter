@@ -8,15 +8,12 @@
     <name>Image to WebP Converter</name>
 
     <!-- A displayed Vendor name or Organization ID displayed on the Plugins Page. -->
-    <vendor email="poley.yuri@gmail.com">Petlyra</vendor>
+    <vendor email="poley.yuri@gmail.com">Yurii Palei</vendor>
 
     <!-- Description of the plugin displayed on the Plugin Page and IDE Plugin Manager.
          Simple HTML elements (text formatting, paragraphs, and lists) can be added inside of <![CDATA[ ]]> tag.
          Guidelines: https://plugins.jetbrains.com/docs/marketplace/plugin-overview-page.html#plugin-description -->
     <description><![CDATA[
-<h2>Plugin Name: Image to WebP Converter</h2>
-
-<h3>Description:</h3>
 <p>
 Image to WebP Converter is a plugin for WebStorm and other IntelliJ-based IDEs that allows you to convert JPEG and PNG images to WebP format directly within your development environment. The plugin integrates seamlessly into the context menu, making the conversion process quick and convenient.
 </p>

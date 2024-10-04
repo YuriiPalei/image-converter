@@ -106,7 +106,7 @@ class ConfirmationDialog(
 
     private fun updateOkButton() {
         val selectedCount = fileDataList.count { it.selected }
-        isOKActionEnabled = selectedCount <= maxFiles && selectedCount > 0
+        isOKActionEnabled = selectedCount in 1..maxFiles
         if (selectedCount > maxFiles) {
             setErrorText("You can select up to $maxFiles files.")
         } else {
