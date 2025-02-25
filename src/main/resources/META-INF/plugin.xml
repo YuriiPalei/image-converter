@@ -1,7 +1,7 @@
 <idea-plugin url="https://plugins.jetbrains.com/plugin/25469-image-to-webp-converter">
     <id>palei.yurii.image-converter</id>
     <name>Image to WebP Converter</name>
-    <version>1.0.2</version>
+    <version>1.0.3</version>
     <vendor email="poley.yuri@gmail.com">Yurii Palei</vendor>
     <idea-version since-build="232" until-build="251.*"/>
 

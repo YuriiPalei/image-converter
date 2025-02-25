@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.0.3] - 2025-02-25
+### Added
+- Fixed error "invalid plugin descriptor jetbrains plugin"
+
 ## [1.0.2] - 2025-01-23
 ### Added
 - Added support for IDE version 251.*
