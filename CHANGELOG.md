@@ -1,6 +1,10 @@
 # Changelog
 
-## [1.0.0] - 2024-12-06
+## [1.0.2] - 2025-01-23
+### Added
+- Added support for IDE version 251.*
+
+## [1.0.1] - 2024-12-06
 ### Added
 - Added support for IDE version 2024.3.*
 
