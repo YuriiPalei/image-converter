@@ -1,4 +1,19 @@
-# Changelog
+# Image to WebP Converter Changelog
+
+## [1.1.0] 
+
+### Added
+- Unit tests for the plugin.
+
+### Fixed
+- Fixed the issue with converting to JPG format.
+
+### Changed
+- Language was changed from Kotlin to Java.
+
+## [1.0.4]
+### Added
+- Added support for IDE version 2025.1.*
 
 ## [1.0.3] - 2025-02-25
 ### Added
