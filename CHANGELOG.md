@@ -3,10 +3,10 @@
 ## [1.1.0] 
 
 ### Added
-- Unit tests for the plugin.
+- Unit tests for core logic of the plugin.
 
 ### Fixed
-- Fixed the issue with converting to JPG format.
+- Fixed the issue with converting from JPEG format.
 
 ### Changed
 - Language was changed from Kotlin to Java.
