@@ -112,31 +112,64 @@ public class ConfirmationDialog extends DialogWrapper {
       for (int i = 0; i < fileDataList.size(); i++) {
         final int index = i;
         var fileData = fileDataList.get(i);
+        var file = fileData.getFile();
+        var ioFile = new File(file.getPath());
+        var extension = file.getExtension() != null ? file.getExtension().toLowerCase() : null;
+
         executor.submit(
             () -> {
-              var file = fileData.getFile();
-              var ioFile = new File(file.getPath());
-              var extension =
-                  file.getExtension() != null ? file.getExtension().toLowerCase() : null;
-
               if (conversionService.isFormatSupported(extension)) {
                 try {
+                  System.out.println("Starting conversion for file: " + file.getName());
                   var results = conversionService.convertFiles(List.of(ioFile), "webp");
+                  System.out.println("Got results: " + results.size());
                   if (!results.isEmpty()) {
                     var result = results.get(0);
-                    fileData.setEstimatedSize(result.getConvertedSize());
-                    fileData.setReductionPercentage(result.getReductionPercentage());
-                    fileData.setStatus("Estimated");
+                    System.out.println("Result success: " + result.isSuccess());
+                    System.out.println("Result converted size: " + result.getConvertedSize());
+                    System.out.println("Result reduction: " + result.getReductionPercentage());
+                    if (result.isSuccess()) {
+                      SwingUtilities.invokeLater(
+                          () -> {
+                            fileData.setEstimatedSize(result.getConvertedSize());
+                            fileData.setReductionPercentage(result.getReductionPercentage());
+                            fileData.setStatus("Estimated");
+                            System.out.println("Setting status to Estimated");
+                            tableModel.fireTableRowsUpdated(index, index);
+                          });
+                    } else {
+                      SwingUtilities.invokeLater(
+                          () -> {
+                            fileData.setStatus("Error: " + result.getErrorMessage());
+                            System.out.println("Setting error status: " + result.getErrorMessage());
+                            tableModel.fireTableRowsUpdated(index, index);
+                          });
+                    }
                   } else {
-                    fileData.setStatus("Error");
+                    SwingUtilities.invokeLater(
+                        () -> {
+                          fileData.setStatus("Error: No results returned");
+                          System.out.println("Setting error status: No results returned");
+                          tableModel.fireTableRowsUpdated(index, index);
+                        });
                   }
                 } catch (Exception e) {
-                  fileData.setStatus("Error: " + e.getMessage());
+                  System.out.println("Exception during conversion: " + e.getMessage());
+                  e.printStackTrace();
+                  SwingUtilities.invokeLater(
+                      () -> {
+                        fileData.setStatus("Error: " + e.getMessage());
+                        tableModel.fireTableRowsUpdated(index, index);
+                      });
                 }
               } else {
-                fileData.setStatus("Unsupported format");
+                System.out.println("Format not supported: " + extension);
+                SwingUtilities.invokeLater(
+                    () -> {
+                      fileData.setStatus("Unsupported format");
+                      tableModel.fireTableRowsUpdated(index, index);
+                    });
               }
-              SwingUtilities.invokeLater(() -> tableModel.fireTableRowsUpdated(index, index));
             });
       }
     } finally {
@@ -239,18 +272,24 @@ public class ConfirmationDialog extends DialogWrapper {
         case 0 -> fileData.isSelected();
         case 1 -> fileData.getFile().getName();
         case 2 -> formatSize(fileData.getFileSize());
-        case 3 ->
-            switch (fileData.getStatus()) {
-              case "Estimating..." -> "Estimating...";
-              case "Error" -> "Error";
-              default -> formatSize(fileData.getEstimatedSize());
-            };
-        case 4 ->
-            switch (fileData.getStatus()) {
-              case "Estimating..." -> "Estimating...";
-              case "Error" -> "Error";
-              default -> formatPercentage(fileData.getReductionPercentage());
-            };
+        case 3 -> {
+          if ("Estimating...".equals(fileData.getStatus())) {
+            yield "Estimating...";
+          } else if (fileData.getStatus().startsWith("Error")) {
+            yield fileData.getStatus();
+          } else {
+            yield formatSize(fileData.getEstimatedSize());
+          }
+        }
+        case 4 -> {
+          if ("Estimating...".equals(fileData.getStatus())) {
+            yield "Estimating...";
+          } else if (fileData.getStatus().startsWith("Error")) {
+            yield fileData.getStatus();
+          } else {
+            yield formatPercentage(fileData.getReductionPercentage());
+          }
+        }
         default -> null;
       };
     }

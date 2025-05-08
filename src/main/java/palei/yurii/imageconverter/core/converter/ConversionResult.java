@@ -11,17 +11,20 @@ public class ConversionResult {
   private final double reductionPercentage;
 
   public ConversionResult(
-      boolean success, File inputFile, File outputFile, long convertedSize, String errorMessage) {
+      boolean success,
+      File inputFile,
+      File outputFile,
+      long originalSize,
+      long convertedSize,
+      String errorMessage) {
     this.success = success;
     this.inputFile = inputFile;
     this.outputFile = outputFile;
     this.convertedSize = convertedSize;
     this.errorMessage = errorMessage;
 
-    if (success && inputFile != null) {
-      long originalSize = inputFile.length();
-      this.reductionPercentage =
-          originalSize > 0 ? ((originalSize - convertedSize) / (double) originalSize) * 100.0 : 0.0;
+    if (success && originalSize > 0) {
+      this.reductionPercentage = ((originalSize - convertedSize) / (double) originalSize) * 100.0;
     } else {
       this.reductionPercentage = 0.0;
     }

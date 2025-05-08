@@ -23,7 +23,12 @@ public class WebPConverter implements ImageConverter {
   public ConversionResult convert(File inputFile) {
     if (!supportsFormat(getFileExtension(inputFile))) {
       return new ConversionResult(
-          false, inputFile, null, 0, "Unsupported input format: " + getFileExtension(inputFile));
+          false,
+          inputFile,
+          null,
+          inputFile.length(),
+          0L,
+          "Unsupported input format: " + getFileExtension(inputFile));
     }
 
     File outputFile =
@@ -34,7 +39,8 @@ public class WebPConverter implements ImageConverter {
       BufferedImage image = ImageIO.read(inputFile);
       if (image == null) {
         System.err.println("Failed to read input image");
-        return new ConversionResult(false, inputFile, null, 0, "Failed to read input image");
+        return new ConversionResult(
+            false, inputFile, null, inputFile.length(), 0L, "Failed to read input image");
       }
       System.out.println(
           "Successfully read input image: " + image.getWidth() + "x" + image.getHeight());
@@ -46,18 +52,25 @@ public class WebPConverter implements ImageConverter {
         System.err.println(
             "Failed to write image. Available writers: "
                 + Arrays.toString(ImageIO.getWriterFormatNames()));
-        return new ConversionResult(false, inputFile, null, 0, "Failed to write image");
+        return new ConversionResult(
+            false, inputFile, null, inputFile.length(), 0L, "Failed to write image");
       }
 
       if (!outputFile.exists() || outputFile.length() == 0) {
         System.err.println("Output file was not created or is empty");
         return new ConversionResult(
-            false, inputFile, null, 0, "Output file was not created or is empty");
+            false,
+            inputFile,
+            null,
+            inputFile.length(),
+            0L,
+            "Output file was not created or is empty");
       }
 
       System.out.println(
           "Conversion successful. Output file size: " + outputFile.length() + " bytes");
-      return new ConversionResult(true, inputFile, outputFile, outputFile.length(), null);
+      return new ConversionResult(
+          true, inputFile, outputFile, inputFile.length(), outputFile.length(), null);
     } catch (IOException e) {
       System.err.println("Conversion failed with error: " + e.getMessage());
       e.printStackTrace();
@@ -65,7 +78,7 @@ public class WebPConverter implements ImageConverter {
         outputFile.delete();
       }
       return new ConversionResult(
-          false, inputFile, null, 0, "Conversion failed: " + e.getMessage());
+          false, inputFile, null, inputFile.length(), 0L, "Conversion failed: " + e.getMessage());
     }
   }
 

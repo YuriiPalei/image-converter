@@ -44,7 +44,7 @@ public class ConversionServiceImpl implements ConversionService {
                     return webpConverter.convert(file);
                   }
                   return new ConversionResult(
-                      false, file, null, 0L, "Unsupported format: " + targetFormat);
+                      false, file, null, file.length(), 0L, "Unsupported format: " + targetFormat);
                 });
         futures.add(future);
       }
@@ -54,11 +54,13 @@ public class ConversionServiceImpl implements ConversionService {
           results.add(future.get(30, TimeUnit.SECONDS));
         } catch (Exception e) {
           results.add(
-              new ConversionResult(false, null, null, 0L, "Conversion failed: " + e.getMessage()));
+              new ConversionResult(
+                  false, null, null, 0L, 0L, "Conversion failed: " + e.getMessage()));
         }
       }
     } catch (Exception e) {
-      results.add(new ConversionResult(false, null, null, 0L, "Service error: " + e.getMessage()));
+      results.add(
+          new ConversionResult(false, null, null, 0L, 0L, "Service error: " + e.getMessage()));
     }
 
     return results;
@@ -66,7 +68,8 @@ public class ConversionServiceImpl implements ConversionService {
 
   @Override
   public boolean isFormatSupported(String format) {
-    return "webp".equalsIgnoreCase(format);
+    var supportedFormats = webpConverter.getSupportedFormats();
+    return supportedFormats.contains(format.toLowerCase());
   }
 
   @Override
