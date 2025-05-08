@@ -4,3 +4,4 @@
 .qodana
 .vscode
 build
+/.run/

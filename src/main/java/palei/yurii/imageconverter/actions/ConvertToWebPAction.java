@@ -4,26 +4,26 @@ import com.intellij.openapi.actionSystem.ActionUpdateThread;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.CommonDataKeys;
-import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.progress.ProgressIndicator;
 import com.intellij.openapi.progress.Task;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.vfs.LocalFileSystem;
 import com.intellij.openapi.vfs.VirtualFile;
-import palei.yurii.imageconverter.core.WebPConverter;
-import palei.yurii.imageconverter.ui.ConfirmationDialog;
-import org.jetbrains.annotations.NotNull;
-
 import java.io.File;
 import java.util.List;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import org.jetbrains.annotations.NotNull;
+import palei.yurii.imageconverter.config.ConversionConfig;
+import palei.yurii.imageconverter.service.ConversionService;
+import palei.yurii.imageconverter.service.ConversionServiceImpl;
+import palei.yurii.imageconverter.ui.ConfirmationDialog;
 
 public class ConvertToWebPAction extends AnAction {
-  private static final Logger LOG = Logger.getInstance(ConvertToWebPAction.class);
-  private static final int MAX_FILES = 5;
+  private final ConversionService conversionService;
+
+  public ConvertToWebPAction() {
+    this.conversionService = new ConversionServiceImpl();
+  }
 
   @Override
   public @NotNull ActionUpdateThread getActionUpdateThread() {
@@ -63,87 +63,41 @@ public class ConvertToWebPAction extends AnAction {
           return;
         }
 
-        if (selectedFiles.size() > MAX_FILES) {
+        int maxFiles = ConversionConfig.getMaxFiles();
+        if (selectedFiles.size() > maxFiles) {
           Messages.showErrorDialog(
               String.format(
                   "You have selected %d files. The maximum number of files allowed is %d.",
-                  selectedFiles.size(), MAX_FILES),
+                  selectedFiles.size(), maxFiles),
               "File Limit Exceeded");
           return;
         }
 
         new Task.Backgroundable(project, "Converting to WebP", true) {
-          private final CopyOnWriteArrayList<String> failedFiles = new CopyOnWriteArrayList<>();
-
           @Override
           public void run(@NotNull ProgressIndicator indicator) {
-            var executor = Executors.newFixedThreadPool(MAX_FILES);
-            int totalFiles = selectedFiles.size();
+            List<File> ioFiles =
+                selectedFiles.stream().map(file -> new File(file.getPath())).toList();
+
+            var results = conversionService.convertFiles(ioFiles, "webp");
             var processedFiles = new AtomicInteger(0);
 
-            for (var file : selectedFiles) {
-              if (!file.isDirectory()) {
-                var inputFile = new File(file.getPath());
-                var extension =
-                    file.getExtension() != null ? file.getExtension().toLowerCase() : null;
-                if (isSupportedImage(extension)) {
-                  var outputPath =
-                      String.format(
-                          "%s/%s.webp",
-                          inputFile.getParent(), getFileNameWithoutExtension(inputFile));
-                  var outputFile = new File(outputPath);
-
-                  executor.submit(
-                      () -> {
-                        try {
-                          WebPConverter.convertToWebP(inputFile, outputFile);
-
-                          var localFileSystem = LocalFileSystem.getInstance();
-                          var virtualOutputFile =
-                              localFileSystem.refreshAndFindFileByIoFile(outputFile);
-                          if (virtualOutputFile != null) {
-                            virtualOutputFile.refresh(false, false);
-                          }
-                        } catch (Exception ex) {
-                          ex.printStackTrace();
-                          failedFiles.add(
-                              String.format(
-                                  "%s: Conversion error (%s)",
-                                  inputFile.getName(), ex.getMessage()));
-                        } finally {
-                          synchronized (indicator) {
-                            int currentProcessed = processedFiles.incrementAndGet();
-                            indicator.setFraction((double) currentProcessed / totalFiles);
-                            indicator.setText(
-                                String.format(
-                                    "Processed files: %d of %d", currentProcessed, totalFiles));
-                          }
-                        }
-                      });
-                } else {
-                  failedFiles.add(String.format("%s: Unsupported format", inputFile.getName()));
-                  synchronized (indicator) {
-                    int currentProcessed = processedFiles.incrementAndGet();
-                    indicator.setFraction((double) currentProcessed / totalFiles);
-                    indicator.setText(
-                        String.format("Processed files: %d of %d", currentProcessed, totalFiles));
-                  }
-                }
-              } else {
-                synchronized (indicator) {
-                  int currentProcessed = processedFiles.incrementAndGet();
-                  indicator.setFraction((double) currentProcessed / totalFiles);
-                  indicator.setText(
-                      String.format("Processed files: %d of %d", currentProcessed, totalFiles));
+            for (var result : results) {
+              if (result.isSuccess()) {
+                var localFileSystem = LocalFileSystem.getInstance();
+                var virtualOutputFile =
+                    localFileSystem.refreshAndFindFileByIoFile(result.getOutputFile());
+                if (virtualOutputFile != null) {
+                  virtualOutputFile.refresh(false, false);
                 }
               }
-            }
-            executor.shutdown();
-            try {
-              executor.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
-            } catch (InterruptedException ex) {
-              Thread.currentThread().interrupt();
-              LOG.warn("Waiting for thread pool termination was interrupted", ex);
+
+              synchronized (indicator) {
+                int currentProcessed = processedFiles.incrementAndGet();
+                indicator.setFraction((double) currentProcessed / results.size());
+                indicator.setText(
+                    String.format("Processed files: %d of %d", currentProcessed, results.size()));
+              }
             }
 
             var projectBaseDir = project != null ? project.getBaseDir() : null;
@@ -154,17 +108,8 @@ public class ConvertToWebPAction extends AnAction {
 
           @Override
           public void onSuccess() {
-            if (!failedFiles.isEmpty()) {
-              var messageBuilder =
-                  new StringBuilder(
-                      "Conversion completed with errors.\n\nIssues occurred with the following files:\n");
-              failedFiles.forEach(
-                  fileInfo -> messageBuilder.append("- ").append(fileInfo).append("\n"));
-              Messages.showWarningDialog(messageBuilder.toString(), "Conversion Completed");
-            } else {
-              Messages.showInfoMessage(
-                  "All files have been successfully converted.", "Conversion Completed");
-            }
+            Messages.showInfoMessage(
+                "All files have been successfully converted.", "Conversion Completed");
           }
 
           @Override
@@ -176,16 +121,5 @@ public class ConvertToWebPAction extends AnAction {
     } else {
       Messages.showErrorDialog("Please select one or more image files.", "No Files Selected");
     }
-  }
-
-  private String getFileNameWithoutExtension(File file) {
-    String name = file.getName();
-    int pos = name.lastIndexOf(".");
-    return pos > 0 ? name.substring(0, pos) : name;
-  }
-
-  private boolean isSupportedImage(String extension) {
-    var supportedExtensions = List.of("jpg", "jpeg", "png");
-    return extension != null && supportedExtensions.contains(extension);
   }
 }

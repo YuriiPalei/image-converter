@@ -1,27 +1,33 @@
-package palei.yurii.imageconverter.core;
+package palei.yurii.imageconverter.core.converter;
 
+import static org.junit.Assert.*;
+
+import java.awt.image.BufferedImage;
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Locale;
+import javax.imageio.IIOImage;
+import javax.imageio.ImageIO;
+import javax.imageio.ImageTypeSpecifier;
+import javax.imageio.ImageWriteParam;
+import javax.imageio.ImageWriter;
+import javax.imageio.metadata.IIOMetadata;
+import javax.imageio.spi.IIORegistry;
+import javax.imageio.spi.ImageWriterSpi;
+import javax.imageio.stream.ImageOutputStream;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
-import javax.imageio.ImageIO;
-import javax.imageio.spi.IIORegistry;
-import javax.imageio.spi.ImageWriterSpi;
-import javax.imageio.ImageWriter;
-import javax.imageio.IIOImage;
-import javax.imageio.ImageWriteParam;
-import javax.imageio.stream.ImageOutputStream;
-import javax.imageio.metadata.IIOMetadata;
-import javax.imageio.ImageTypeSpecifier;
-import java.io.IOException;
-import java.util.Locale;
-import java.awt.image.BufferedImage;
-import java.io.File;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Iterator;
-import static org.junit.Assert.*;
 
 public class WebPConverterTest {
+  private final WebPConverter webPConverter;
+
+  public WebPConverterTest() {
+    this.webPConverter = new WebPConverter();
+  }
 
   @Rule public TemporaryFolder tempFolder = new TemporaryFolder();
 
@@ -34,15 +40,15 @@ public class WebPConverterTest {
     File inputFile = tempFolder.newFile("test.png");
     ImageIO.write(image, "PNG", inputFile);
 
-    File outputFile = new File(tempFolder.getRoot(), "test.webp");
-    WebPConverter.convertToWebP(inputFile, outputFile);
+    var result = this.webPConverter.convert(inputFile);
 
-    assertTrue("Output file should exist", outputFile.exists());
-    assertTrue("Output file should not be empty", outputFile.length() > 0);
+    assertTrue("Conversion should be successful", result.isSuccess());
+    assertTrue("Output file should exist", result.getOutputFile().exists());
+    assertTrue("Output file should not be empty", result.getOutputFile().length() > 0);
   }
 
-  @Test(expected = IllegalStateException.class)
-  public void convertToWebP_noWriter_throws() throws Exception {
+  @Test
+  public void convertToWebP_noWriter_returnsError() throws Exception {
     IIORegistry registry = IIORegistry.getDefaultInstance();
     List<ImageWriterSpi> providers = new ArrayList<>();
     Iterator<ImageWriterSpi> iterator = registry.getServiceProviders(ImageWriterSpi.class, true);
@@ -60,13 +66,37 @@ public class WebPConverterTest {
       BufferedImage image = new BufferedImage(10, 10, BufferedImage.TYPE_INT_RGB);
       File inputFile = tempFolder.newFile("test2.png");
       ImageIO.write(image, "PNG", inputFile);
-      File outputFile = new File(tempFolder.getRoot(), "test2.webp");
-      WebPConverter.convertToWebP(inputFile, outputFile);
+
+      var result = this.webPConverter.convert(inputFile);
+
+      assertFalse("Conversion should fail", result.isSuccess());
+      assertEquals(
+          "Error message should indicate no WebP writers",
+          "No WebP writers found",
+          result.getErrorMessage());
     } finally {
       for (ImageWriterSpi spi : providers) {
         registry.registerServiceProvider(spi);
       }
     }
+  }
+
+  @Test
+  public void supportsFormat_validFormats_returnsTrue() {
+    assertTrue(webPConverter.supportsFormat("jpg"));
+    assertTrue(webPConverter.supportsFormat("jpeg"));
+    assertTrue(webPConverter.supportsFormat("png"));
+    assertTrue(webPConverter.supportsFormat("PNG"));
+    assertTrue(webPConverter.supportsFormat("JPG"));
+  }
+
+  @Test
+  public void supportsFormat_invalidFormats_returnsFalse() {
+    assertFalse(webPConverter.supportsFormat("webp"));
+    assertFalse(webPConverter.supportsFormat("gif"));
+    assertFalse(webPConverter.supportsFormat("bmp"));
+    assertFalse(webPConverter.supportsFormat(null));
+    assertFalse(webPConverter.supportsFormat(""));
   }
 
   // --- Stub SPI и Writer для WebP ---
@@ -110,8 +140,11 @@ public class WebPConverterTest {
   }
 
   private static class TestWebPImageWriter extends ImageWriter {
+    private ImageWriteParam writeParam;
+
     protected TestWebPImageWriter(ImageWriterSpi originatingProvider) {
       super(originatingProvider);
+      writeParam = new TestWebPWriteParam();
     }
 
     @Override
@@ -137,10 +170,25 @@ public class WebPConverterTest {
     }
 
     @Override
+    public ImageWriteParam getDefaultWriteParam() {
+      return writeParam;
+    }
+
+    @Override
     public void write(IIOMetadata streamMetadata, IIOImage image, ImageWriteParam param)
         throws IOException {
       ImageOutputStream ios = (ImageOutputStream) getOutput();
-      ios.writeByte(0);
+      ios.write(new byte[] {0x1, 0x2, 0x3, 0x4});
+    }
+  }
+
+  private static class TestWebPWriteParam extends ImageWriteParam {
+    public TestWebPWriteParam() {
+      super();
+      canWriteCompressed = true;
+      compressionMode = MODE_EXPLICIT;
+      compressionTypes = new String[] {"DEFAULT"};
+      compressionType = compressionTypes[0];
     }
   }
 }

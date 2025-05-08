@@ -5,12 +5,17 @@ import com.intellij.openapi.ui.DialogWrapper;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.ui.components.JBCheckBox;
 import com.intellij.ui.components.JBScrollPane;
+import palei.yurii.imageconverter.config.ConversionConfig;
+import palei.yurii.imageconverter.service.ConversionService;
+import palei.yurii.imageconverter.service.ConversionServiceImpl;
 import java.awt.*;
 import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import javax.imageio.IIOImage;
 import javax.imageio.ImageIO;
 import javax.swing.*;
@@ -22,15 +27,16 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 public class ConfirmationDialog extends DialogWrapper {
-  private static final int MAX_FILES = 5;
   private final List<FileData> fileDataList = new ArrayList<>();
   private final FileTableModel tableModel = new FileTableModel();
   private final DecimalFormat decimalFormat = new DecimalFormat("#.##");
+  private final ConversionService conversionService;
   private JBCheckBox selectAllCheckBox;
   private boolean isUpdatingSelectAllCheckBox = false;
 
   public ConfirmationDialog(@Nullable Project project, @NotNull List<VirtualFile> files) {
     super(project);
+    this.conversionService = new ConversionServiceImpl();
     init();
     setTitle("Confirm Conversion");
 
@@ -91,41 +97,59 @@ public class ConfirmationDialog extends DialogWrapper {
 
   private void updateOkButton() {
     long selectedCount = fileDataList.stream().filter(FileData::isSelected).count();
-    setOKActionEnabled(selectedCount >= 1 && selectedCount <= MAX_FILES);
-    if (selectedCount > MAX_FILES) {
-      setErrorText("You can select up to " + MAX_FILES + " files.");
+    int maxFiles = ConversionConfig.getMaxFiles();
+    setOKActionEnabled(selectedCount >= 1 && selectedCount <= maxFiles);
+    if (selectedCount > maxFiles) {
+      setErrorText("You can select up to " + maxFiles + " files.");
     } else {
       setErrorText(null);
     }
   }
 
   private void estimateSizesInBackground() {
-    var executor = Executors.newFixedThreadPool(5);
-    for (int i = 0; i < fileDataList.size(); i++) {
-      final int index = i;
-      var fileData = fileDataList.get(i);
-      executor.submit(
-          () -> {
-            var file = fileData.getFile();
-            if (isSupportedImage(
-                file.getExtension() != null ? file.getExtension().toLowerCase() : null)) {
-              var estimatedSize = estimateWebPSize(file);
-              fileData.setEstimatedSize(estimatedSize);
-              if (estimatedSize != null) {
-                fileData.setReductionPercentage(
-                    ((fileData.getFileSize() - estimatedSize) / (double) fileData.getFileSize())
-                        * 100);
-                fileData.setStatus("Estimated");
+    var executor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
+    try {
+      for (int i = 0; i < fileDataList.size(); i++) {
+        final int index = i;
+        var fileData = fileDataList.get(i);
+        executor.submit(
+            () -> {
+              var file = fileData.getFile();
+              var ioFile = new File(file.getPath());
+              var extension =
+                  file.getExtension() != null ? file.getExtension().toLowerCase() : null;
+
+              if (conversionService.isFormatSupported(extension)) {
+                try {
+                  var results = conversionService.convertFiles(List.of(ioFile), "webp");
+                  if (!results.isEmpty()) {
+                    var result = results.get(0);
+                    fileData.setEstimatedSize(result.getConvertedSize());
+                    fileData.setReductionPercentage(result.getReductionPercentage());
+                    fileData.setStatus("Estimated");
+                  } else {
+                    fileData.setStatus("Error");
+                  }
+                } catch (Exception e) {
+                  fileData.setStatus("Error: " + e.getMessage());
+                }
               } else {
-                fileData.setStatus("Error");
+                fileData.setStatus("Unsupported format");
               }
-            } else {
-              fileData.setStatus("Unsupported");
-            }
-            SwingUtilities.invokeLater(() -> tableModel.fireTableRowsUpdated(index, index));
-          });
+              SwingUtilities.invokeLater(() -> tableModel.fireTableRowsUpdated(index, index));
+            });
+      }
+    } finally {
+      executor.shutdown();
+      try {
+        if (!executor.awaitTermination(30, TimeUnit.SECONDS)) {
+          executor.shutdownNow();
+        }
+      } catch (InterruptedException e) {
+        executor.shutdownNow();
+        Thread.currentThread().interrupt();
+      }
     }
-    executor.shutdown();
   }
 
   private String formatSize(Long sizeInBytes) {
