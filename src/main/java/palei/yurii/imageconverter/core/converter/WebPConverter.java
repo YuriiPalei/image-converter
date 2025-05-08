@@ -1,17 +1,23 @@
 package palei.yurii.imageconverter.core.converter;
 
-import javax.imageio.IIOImage;
 import javax.imageio.ImageIO;
-import javax.imageio.ImageWriteParam;
-import javax.imageio.ImageWriter;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
+import java.util.Arrays;
 
 public class WebPConverter implements ImageConverter {
   private static final String FORMAT = "webp";
   private static final List<String> SUPPORTED_FORMATS = List.of("jpg", "jpeg", "png");
+
+  static {
+    ImageIO.scanForPlugins();
+    System.out.println(
+        "Available image writers: " + Arrays.toString(ImageIO.getWriterFormatNames()));
+    System.out.println(
+        "Available image readers: " + Arrays.toString(ImageIO.getReaderFormatNames()));
+  }
 
   @Override
   public ConversionResult convert(File inputFile) {
@@ -24,31 +30,40 @@ public class WebPConverter implements ImageConverter {
         new File(inputFile.getParent(), getFileNameWithoutExtension(inputFile) + "." + FORMAT);
 
     try {
+      System.out.println("Reading input file: " + inputFile.getAbsolutePath());
       BufferedImage image = ImageIO.read(inputFile);
       if (image == null) {
+        System.err.println("Failed to read input image");
         return new ConversionResult(false, inputFile, null, 0, "Failed to read input image");
       }
+      System.out.println(
+          "Successfully read input image: " + image.getWidth() + "x" + image.getHeight());
 
-      var writers = ImageIO.getImageWritersByFormatName(FORMAT);
-      if (!writers.hasNext()) {
-        return new ConversionResult(false, inputFile, null, 0, "No WebP writers found");
+      System.out.println("Writing image to output file: " + outputFile.getAbsolutePath());
+      boolean success = ImageIO.write(image, FORMAT, outputFile);
+
+      if (!success) {
+        System.err.println(
+            "Failed to write image. Available writers: "
+                + Arrays.toString(ImageIO.getWriterFormatNames()));
+        return new ConversionResult(false, inputFile, null, 0, "Failed to write image");
       }
 
-      var writer = writers.next();
-      var param = writer.getDefaultWriteParam();
-      param.setCompressionMode(ImageWriteParam.MODE_EXPLICIT);
-      param.setCompressionType("DEFAULT");
-      param.setCompressionQuality(0.8f);
+      if (!outputFile.exists() || outputFile.length() == 0) {
+        System.err.println("Output file was not created or is empty");
+        return new ConversionResult(
+            false, inputFile, null, 0, "Output file was not created or is empty");
+      }
 
-      var ios = ImageIO.createImageOutputStream(outputFile);
-      writer.setOutput(ios);
-      writer.write(null, new IIOImage(image, null, null), param);
-
-      ios.close();
-      writer.dispose();
-
+      System.out.println(
+          "Conversion successful. Output file size: " + outputFile.length() + " bytes");
       return new ConversionResult(true, inputFile, outputFile, outputFile.length(), null);
     } catch (IOException e) {
+      System.err.println("Conversion failed with error: " + e.getMessage());
+      e.printStackTrace();
+      if (outputFile.exists()) {
+        outputFile.delete();
+      }
       return new ConversionResult(
           false, inputFile, null, 0, "Conversion failed: " + e.getMessage());
     }

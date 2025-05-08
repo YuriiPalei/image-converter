@@ -27,8 +27,14 @@ repositories {
 dependencies {
     testImplementation(libs.junit)
     testImplementation(libs.opentest4j)
-    testImplementation("com.twelvemonkeys.imageio:imageio-webp:3.8.2")
-    implementation("com.twelvemonkeys.imageio:imageio-webp:3.8.2")
+    testImplementation("com.twelvemonkeys.imageio:imageio-webp:3.12.0")
+
+    // WebP support
+    implementation("com.twelvemonkeys.imageio:imageio-core:3.12.0")
+    implementation("com.twelvemonkeys.imageio:imageio-webp:3.12.0")
+    implementation("com.twelvemonkeys.imageio:imageio-jpeg:3.12.0")
+    implementation("com.twelvemonkeys.imageio:imageio-bmp:3.12.0")
+    implementation("com.twelvemonkeys.imageio:imageio-tiff:3.12.0")
 
     // IntelliJ Platform Gradle Plugin Dependencies Extension - read more: https://plugins.jetbrains.com/docs/intellij/tools-intellij-platform-gradle-plugin-dependencies-extension.html
     intellijPlatform {
