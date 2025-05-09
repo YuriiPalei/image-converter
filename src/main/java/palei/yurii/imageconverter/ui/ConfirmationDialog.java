@@ -116,7 +116,7 @@ public class ConfirmationDialog extends DialogWrapper {
       final int index = i;
       var fileData = fileDataList.get(i);
       var file = fileData.getFile();
-      var extension = file.getExtension() != null ? file.getExtension().toLowerCase() : null;
+      var extension = fileData.getExtension();
 
       if (conversionService.isFormatSupported(extension)) {
         try {

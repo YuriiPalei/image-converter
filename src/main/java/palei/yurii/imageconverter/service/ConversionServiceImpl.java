@@ -3,8 +3,6 @@ package palei.yurii.imageconverter.service;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -15,20 +13,12 @@ import palei.yurii.imageconverter.core.converter.WebPConverter;
 import palei.yurii.imageconverter.model.ConversionStrategy;
 
 public class ConversionServiceImpl implements ConversionService {
-  private final Map<String, ImageConverter> converters;
   private final ExecutorService executorService;
   private final ImageConverter webpConverter;
 
   public ConversionServiceImpl() {
-    this.converters = new ConcurrentHashMap<>();
     this.executorService = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
     this.webpConverter = new WebPConverter();
-
-    registerConverter(new WebPConverter());
-  }
-
-  private void registerConverter(ImageConverter converter) {
-    converters.put(converter.getTargetFormat(), converter);
   }
 
   @Override
@@ -76,7 +66,7 @@ public class ConversionServiceImpl implements ConversionService {
 
   @Override
   public List<String> getSupportedFormats() {
-    return new ArrayList<>(converters.keySet());
+    return webpConverter.getSupportedFormats();
   }
 
   @Override

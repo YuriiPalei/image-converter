@@ -12,20 +12,19 @@ import java.io.File;
 public class FileData {
   private final VirtualFile file;
   private final File ioFile;
+  private final String extension;
   private final long fileSize;
   @Setter private boolean selected;
   @Setter private Long estimatedSize;
   @Setter private Double reductionPercentage;
   @Setter private String status;
 
-  public FileData(
-      VirtualFile file,
-      boolean selected,
-      long fileSize) {
+  public FileData(VirtualFile file, boolean selected, long fileSize) {
     this.file = file;
     this.selected = selected;
     this.fileSize = fileSize;
     this.ioFile = new File(file.getPath());
+    this.extension = file.getExtension() != null ? file.getExtension().toLowerCase() : null;
     this.status = "Estimating...";
   }
 }
