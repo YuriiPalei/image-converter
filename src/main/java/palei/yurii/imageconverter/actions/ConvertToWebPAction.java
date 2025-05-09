@@ -58,6 +58,7 @@ public class ConvertToWebPAction extends AnAction {
       var dialog = new ConfirmationDialog(project, List.of(allFiles));
       if (dialog.showAndGet()) {
         var selectedFiles = dialog.getSelectedFiles();
+        System.out.println(selectedFiles);
         if (selectedFiles.isEmpty()) {
           Messages.showInfoMessage("No files selected for conversion.", "Information");
           return;

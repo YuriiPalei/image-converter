@@ -36,6 +36,9 @@ dependencies {
     implementation("com.twelvemonkeys.imageio:imageio-bmp:3.12.0")
     implementation("com.twelvemonkeys.imageio:imageio-tiff:3.12.0")
 
+    compileOnly("org.projectlombok:lombok:1.18.38")
+    annotationProcessor("org.projectlombok:lombok:1.18.38")
+
     // IntelliJ Platform Gradle Plugin Dependencies Extension - read more: https://plugins.jetbrains.com/docs/intellij/tools-intellij-platform-gradle-plugin-dependencies-extension.html
     intellijPlatform {
         create(providers.gradleProperty("platformType"), providers.gradleProperty("platformVersion"))

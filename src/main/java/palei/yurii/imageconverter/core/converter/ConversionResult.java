@@ -1,7 +1,10 @@
 package palei.yurii.imageconverter.core.converter;
 
+import lombok.Getter;
+
 import java.io.File;
 
+@Getter
 public class ConversionResult {
   private final boolean success;
   private final File inputFile;
@@ -30,27 +33,4 @@ public class ConversionResult {
     }
   }
 
-  public boolean isSuccess() {
-    return success;
-  }
-
-  public File getInputFile() {
-    return inputFile;
-  }
-
-  public File getOutputFile() {
-    return outputFile;
-  }
-
-  public long getConvertedSize() {
-    return convertedSize;
-  }
-
-  public String getErrorMessage() {
-    return errorMessage;
-  }
-
-  public double getReductionPercentage() {
-    return reductionPercentage;
-  }
 }

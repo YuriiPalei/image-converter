@@ -6,18 +6,14 @@ import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.ui.components.JBCheckBox;
 import com.intellij.ui.components.JBScrollPane;
 import palei.yurii.imageconverter.config.ConversionConfig;
+import palei.yurii.imageconverter.model.FileData;
 import palei.yurii.imageconverter.service.ConversionService;
 import palei.yurii.imageconverter.service.ConversionServiceImpl;
 import java.awt.*;
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
-import javax.imageio.IIOImage;
-import javax.imageio.ImageIO;
 import javax.swing.*;
 import javax.swing.table.AbstractTableModel;
 import javax.swing.table.DefaultTableCellRenderer;
@@ -43,7 +39,7 @@ public class ConfirmationDialog extends DialogWrapper {
     // Prepare data for the table
     for (var file : files) {
       long fileSize = file.getLength();
-      var fileData = new FileData(file, true, fileSize, null, null, "Estimating...");
+      var fileData = new FileData(file, true, fileSize);
       fileDataList.add(fileData);
     }
 
@@ -98,7 +94,7 @@ public class ConfirmationDialog extends DialogWrapper {
   private void updateOkButton() {
     long selectedCount = fileDataList.stream().filter(FileData::isSelected).count();
     int maxFiles = ConversionConfig.getMaxFiles();
-    setOKActionEnabled(selectedCount >= 1 && selectedCount <= maxFiles);
+    setOKActionEnabled(selectedCount > 0 && selectedCount <= maxFiles);
     if (selectedCount > maxFiles) {
       setErrorText("You can select up to " + maxFiles + " files.");
     } else {
@@ -107,80 +103,70 @@ public class ConfirmationDialog extends DialogWrapper {
   }
 
   private void estimateSizesInBackground() {
-    var executor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
-    try {
-      for (int i = 0; i < fileDataList.size(); i++) {
-        final int index = i;
-        var fileData = fileDataList.get(i);
-        var file = fileData.getFile();
-        var ioFile = new File(file.getPath());
-        var extension = file.getExtension() != null ? file.getExtension().toLowerCase() : null;
+    List<File> ioFiles = fileDataList.stream().map(FileData::getIoFile).toList();
+    var results = conversionService.convertFiles(ioFiles, "webp");
 
-        executor.submit(
-            () -> {
-              if (conversionService.isFormatSupported(extension)) {
-                try {
-                  System.out.println("Starting conversion for file: " + file.getName());
-                  var results = conversionService.convertFiles(List.of(ioFile), "webp");
-                  System.out.println("Got results: " + results.size());
-                  if (!results.isEmpty()) {
-                    var result = results.get(0);
-                    System.out.println("Result success: " + result.isSuccess());
-                    System.out.println("Result converted size: " + result.getConvertedSize());
-                    System.out.println("Result reduction: " + result.getReductionPercentage());
-                    if (result.isSuccess()) {
-                      SwingUtilities.invokeLater(
-                          () -> {
-                            fileData.setEstimatedSize(result.getConvertedSize());
-                            fileData.setReductionPercentage(result.getReductionPercentage());
-                            fileData.setStatus("Estimated");
-                            System.out.println("Setting status to Estimated");
-                            tableModel.fireTableRowsUpdated(index, index);
-                          });
-                    } else {
-                      SwingUtilities.invokeLater(
-                          () -> {
-                            fileData.setStatus("Error: " + result.getErrorMessage());
-                            System.out.println("Setting error status: " + result.getErrorMessage());
-                            tableModel.fireTableRowsUpdated(index, index);
-                          });
-                    }
-                  } else {
-                    SwingUtilities.invokeLater(
-                        () -> {
-                          fileData.setStatus("Error: No results returned");
-                          System.out.println("Setting error status: No results returned");
-                          tableModel.fireTableRowsUpdated(index, index);
-                        });
-                  }
-                } catch (Exception e) {
-                  System.out.println("Exception during conversion: " + e.getMessage());
-                  e.printStackTrace();
-                  SwingUtilities.invokeLater(
-                      () -> {
-                        fileData.setStatus("Error: " + e.getMessage());
-                        tableModel.fireTableRowsUpdated(index, index);
-                      });
-                }
-              } else {
-                System.out.println("Format not supported: " + extension);
-                SwingUtilities.invokeLater(
-                    () -> {
-                      fileData.setStatus("Unsupported format");
-                      tableModel.fireTableRowsUpdated(index, index);
-                    });
-              }
-            });
-      }
-    } finally {
-      executor.shutdown();
-      try {
-        if (!executor.awaitTermination(30, TimeUnit.SECONDS)) {
-          executor.shutdownNow();
+    if (results.isEmpty()) {
+      System.out.println("No results returned from conversion service.");
+      return;
+    }
+
+    for (int i = 0; i < fileDataList.size(); i++) {
+      final int index = i;
+      var fileData = fileDataList.get(i);
+      var file = fileData.getFile();
+      var extension = file.getExtension() != null ? file.getExtension().toLowerCase() : null;
+
+      if (conversionService.isFormatSupported(extension)) {
+        try {
+          System.out.println("Processing result for file: " + file.getName());
+          if (i < results.size()) {
+            var result = results.get(i);
+            System.out.println("Result success: " + result.isSuccess());
+            System.out.println("Result converted size: " + result.getConvertedSize());
+            System.out.println("Result reduction: " + result.getReductionPercentage());
+
+            if (result.isSuccess()) {
+              SwingUtilities.invokeLater(
+                  () -> {
+                    fileData.setEstimatedSize(result.getConvertedSize());
+                    fileData.setReductionPercentage(result.getReductionPercentage());
+                    fileData.setStatus("Estimated");
+                    System.out.println("Setting status to Estimated");
+                    tableModel.fireTableRowsUpdated(index, index);
+                  });
+            } else {
+              SwingUtilities.invokeLater(
+                  () -> {
+                    fileData.setStatus("Error: " + result.getErrorMessage());
+                    System.out.println("Setting error status: " + result.getErrorMessage());
+                    tableModel.fireTableRowsUpdated(index, index);
+                  });
+            }
+          } else {
+            SwingUtilities.invokeLater(
+                () -> {
+                  fileData.setStatus("Error: No result available");
+                  System.out.println("Setting error status: No result available");
+                  tableModel.fireTableRowsUpdated(index, index);
+                });
+          }
+        } catch (Exception e) {
+          System.out.println("Exception during processing: " + e.getMessage());
+          e.printStackTrace();
+          SwingUtilities.invokeLater(
+              () -> {
+                fileData.setStatus("Error: " + e.getMessage());
+                tableModel.fireTableRowsUpdated(index, index);
+              });
         }
-      } catch (InterruptedException e) {
-        executor.shutdownNow();
-        Thread.currentThread().interrupt();
+      } else {
+        System.out.println("Format not supported: " + extension);
+        SwingUtilities.invokeLater(
+            () -> {
+              fileData.setStatus("Unsupported format");
+              tableModel.fireTableRowsUpdated(index, index);
+            });
       }
     }
   }
@@ -201,38 +187,6 @@ public class ConfirmationDialog extends DialogWrapper {
   private String formatPercentage(Double value) {
     if (value == null) return "N/A";
     return decimalFormat.format(value) + "%";
-  }
-
-  private boolean isSupportedImage(String extension) {
-    var supportedExtensions = List.of("jpg", "jpeg", "png");
-    return extension != null && supportedExtensions.contains(extension);
-  }
-
-  private Long estimateWebPSize(VirtualFile file) {
-    try {
-      var inputStream = file.getInputStream();
-      var bufferedImage = ImageIO.read(inputStream);
-      inputStream.close();
-
-      var byteArrayOutputStream = new ByteArrayOutputStream();
-      var writers = ImageIO.getImageWritersByFormatName("webp");
-      if (!writers.hasNext()) {
-        return null;
-      }
-      var writer = writers.next();
-      var writeParam = writer.getDefaultWriteParam();
-
-      var ios = ImageIO.createImageOutputStream(byteArrayOutputStream);
-      writer.setOutput(ios);
-      writer.write(null, new IIOImage(bufferedImage, null, null), writeParam);
-      ios.close();
-      writer.dispose();
-
-      return (long) byteArrayOutputStream.size();
-    } catch (Exception e) {
-      e.printStackTrace();
-      return null;
-    }
   }
 
   private class FileTableModel extends AbstractTableModel {
@@ -310,70 +264,6 @@ public class ConfirmationDialog extends DialogWrapper {
       isUpdatingSelectAllCheckBox = true;
       selectAllCheckBox.setSelected(allSelected);
       isUpdatingSelectAllCheckBox = false;
-    }
-  }
-
-  private static class FileData {
-    private final VirtualFile file;
-    private boolean selected;
-    private final long fileSize;
-    private Long estimatedSize;
-    private Double reductionPercentage;
-    private String status;
-
-    public FileData(
-        VirtualFile file,
-        boolean selected,
-        long fileSize,
-        Long estimatedSize,
-        Double reductionPercentage,
-        String status) {
-      this.file = file;
-      this.selected = selected;
-      this.fileSize = fileSize;
-      this.estimatedSize = estimatedSize;
-      this.reductionPercentage = reductionPercentage;
-      this.status = status;
-    }
-
-    public VirtualFile getFile() {
-      return file;
-    }
-
-    public boolean isSelected() {
-      return selected;
-    }
-
-    public void setSelected(boolean selected) {
-      this.selected = selected;
-    }
-
-    public long getFileSize() {
-      return fileSize;
-    }
-
-    public Long getEstimatedSize() {
-      return estimatedSize;
-    }
-
-    public void setEstimatedSize(Long estimatedSize) {
-      this.estimatedSize = estimatedSize;
-    }
-
-    public Double getReductionPercentage() {
-      return reductionPercentage;
-    }
-
-    public void setReductionPercentage(Double reductionPercentage) {
-      this.reductionPercentage = reductionPercentage;
-    }
-
-    public String getStatus() {
-      return status;
-    }
-
-    public void setStatus(String status) {
-      this.status = status;
     }
   }
 }
