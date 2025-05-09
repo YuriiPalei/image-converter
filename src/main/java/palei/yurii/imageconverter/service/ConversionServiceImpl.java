@@ -9,9 +9,10 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-import palei.yurii.imageconverter.core.converter.ConversionResult;
+import palei.yurii.imageconverter.model.ConversionResult;
 import palei.yurii.imageconverter.core.converter.ImageConverter;
 import palei.yurii.imageconverter.core.converter.WebPConverter;
+import palei.yurii.imageconverter.model.ConversionStrategy;
 
 public class ConversionServiceImpl implements ConversionService {
   private final Map<String, ImageConverter> converters;
@@ -31,7 +32,8 @@ public class ConversionServiceImpl implements ConversionService {
   }
 
   @Override
-  public List<ConversionResult> convertFiles(List<File> files, String targetFormat) {
+  public List<ConversionResult> convertFiles(
+      List<File> files, String targetFormat, ConversionStrategy strategy) {
     List<Future<ConversionResult>> futures = new ArrayList<>();
     List<ConversionResult> results = new ArrayList<>();
 
@@ -41,7 +43,7 @@ public class ConversionServiceImpl implements ConversionService {
             executorService.submit(
                 () -> {
                   if ("webp".equalsIgnoreCase(targetFormat)) {
-                    return webpConverter.convert(file);
+                    return webpConverter.convert(file, strategy);
                   }
                   return new ConversionResult(
                       false, file, null, file.length(), 0L, "Unsupported format: " + targetFormat);

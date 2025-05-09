@@ -6,6 +6,7 @@ import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.ui.components.JBCheckBox;
 import com.intellij.ui.components.JBScrollPane;
 import palei.yurii.imageconverter.config.ConversionConfig;
+import palei.yurii.imageconverter.model.ConversionStrategy;
 import palei.yurii.imageconverter.model.FileData;
 import palei.yurii.imageconverter.service.ConversionService;
 import palei.yurii.imageconverter.service.ConversionServiceImpl;
@@ -104,7 +105,7 @@ public class ConfirmationDialog extends DialogWrapper {
 
   private void estimateSizesInBackground() {
     List<File> ioFiles = fileDataList.stream().map(FileData::getIoFile).toList();
-    var results = conversionService.convertFiles(ioFiles, "webp");
+    var results = conversionService.convertFiles(ioFiles, "webp", ConversionStrategy.SIMULATION);
 
     if (results.isEmpty()) {
       System.out.println("No results returned from conversion service.");

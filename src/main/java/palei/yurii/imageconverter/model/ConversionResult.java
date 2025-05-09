@@ -1,4 +1,4 @@
-package palei.yurii.imageconverter.core.converter;
+package palei.yurii.imageconverter.model;
 
 import lombok.Getter;
 
@@ -32,5 +32,4 @@ public class ConversionResult {
       this.reductionPercentage = 0.0;
     }
   }
-
 }

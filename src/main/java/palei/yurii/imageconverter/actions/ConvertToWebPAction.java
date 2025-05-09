@@ -14,6 +14,7 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.jetbrains.annotations.NotNull;
 import palei.yurii.imageconverter.config.ConversionConfig;
+import palei.yurii.imageconverter.model.ConversionStrategy;
 import palei.yurii.imageconverter.service.ConversionService;
 import palei.yurii.imageconverter.service.ConversionServiceImpl;
 import palei.yurii.imageconverter.ui.ConfirmationDialog;
@@ -80,7 +81,7 @@ public class ConvertToWebPAction extends AnAction {
             List<File> ioFiles =
                 selectedFiles.stream().map(file -> new File(file.getPath())).toList();
 
-            var results = conversionService.convertFiles(ioFiles, "webp");
+            var results = conversionService.convertFiles(ioFiles, "webp", ConversionStrategy.REAL);
             var processedFiles = new AtomicInteger(0);
 
             for (var result : results) {

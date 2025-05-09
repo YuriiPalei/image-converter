@@ -1,5 +1,8 @@
 package palei.yurii.imageconverter.core.converter;
 
+import palei.yurii.imageconverter.model.ConversionResult;
+import palei.yurii.imageconverter.model.ConversionStrategy;
+
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.File;
@@ -20,7 +23,7 @@ public class WebPConverter implements ImageConverter {
   }
 
   @Override
-  public ConversionResult convert(File inputFile) {
+  public ConversionResult convert(File inputFile, ConversionStrategy strategy) {
     if (!supportsFormat(getFileExtension(inputFile))) {
       return new ConversionResult(
           false,
@@ -69,8 +72,15 @@ public class WebPConverter implements ImageConverter {
 
       System.out.println(
           "Conversion successful. Output file size: " + outputFile.length() + " bytes");
-      return new ConversionResult(
-          true, inputFile, outputFile, inputFile.length(), outputFile.length(), null);
+      var conversionResult =
+          new ConversionResult(
+              true, inputFile, outputFile, inputFile.length(), outputFile.length(), null);
+
+      if (strategy == ConversionStrategy.SIMULATION) {
+        outputFile.delete();
+      }
+
+      return conversionResult;
     } catch (IOException e) {
       System.err.println("Conversion failed with error: " + e.getMessage());
       e.printStackTrace();

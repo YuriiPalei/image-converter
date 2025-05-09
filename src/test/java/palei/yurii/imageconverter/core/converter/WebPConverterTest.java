@@ -21,6 +21,7 @@ import javax.imageio.stream.ImageOutputStream;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+import palei.yurii.imageconverter.model.ConversionStrategy;
 
 public class WebPConverterTest {
   private final WebPConverter webPConverter;
@@ -40,7 +41,7 @@ public class WebPConverterTest {
     File inputFile = tempFolder.newFile("test.png");
     ImageIO.write(image, "PNG", inputFile);
 
-    var result = this.webPConverter.convert(inputFile);
+    var result = this.webPConverter.convert(inputFile, ConversionStrategy.REAL);
 
     assertTrue("Conversion should be successful", result.isSuccess());
     assertTrue("Output file should exist", result.getOutputFile().exists());
@@ -67,7 +68,7 @@ public class WebPConverterTest {
       File inputFile = tempFolder.newFile("test2.png");
       ImageIO.write(image, "PNG", inputFile);
 
-      var result = this.webPConverter.convert(inputFile);
+      var result = this.webPConverter.convert(inputFile, ConversionStrategy.REAL);
 
       assertFalse("Conversion should fail", result.isSuccess());
       assertEquals(
