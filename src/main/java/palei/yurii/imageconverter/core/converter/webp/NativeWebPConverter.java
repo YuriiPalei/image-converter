@@ -116,7 +116,7 @@ public class NativeWebPConverter extends AbstractWebPConverter {
     }
   }
 
-  private static @NotNull String getResourcePath(String osName, String osArch) {
+  private @NotNull String getResourcePath(String osName, String osArch) {
     String resourcePath;
 
     if (osName.contains("mac")) {

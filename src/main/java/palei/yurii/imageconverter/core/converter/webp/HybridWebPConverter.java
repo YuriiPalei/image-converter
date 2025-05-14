@@ -11,21 +11,19 @@ public class HybridWebPConverter extends AbstractWebPConverter {
   private final ImageConverter fallbackConverter;
 
   public HybridWebPConverter() {
-    // Try to initialize the TwelveMonkeys converter
     try {
-      primaryConverter = new TwelveMonkeysWebPConverter();
+      primaryConverter = new NativeWebPConverter();
     } catch (Exception e) {
       primaryConverter = null;
     }
 
-    // Initialize the native executor as fallback
-    fallbackConverter = new NativeWebPConverter();
+    fallbackConverter = new TwelveMonkeysWebPConverter();
   }
 
   @Override
   public ConversionResult convert(File inputFile, ConversionStrategy strategy) {
-    // Try primary converter first
     if (primaryConverter != null) {
+      System.out.println("Using Native converter");
       try {
         ConversionResult result = primaryConverter.convert(inputFile, strategy);
         if (result.isSuccess()) {
@@ -36,7 +34,7 @@ public class HybridWebPConverter extends AbstractWebPConverter {
       }
     }
 
-    // Use fallback converter
+    System.out.println("Using TwelveMonkeys converter");
     return fallbackConverter.convert(inputFile, strategy);
   }
 }

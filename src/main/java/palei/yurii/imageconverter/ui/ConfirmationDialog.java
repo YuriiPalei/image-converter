@@ -92,8 +92,12 @@ public class ConfirmationDialog extends DialogWrapper {
     return fileDataList.stream().filter(FileData::isSelected).map(FileData::getFile).toList();
   }
 
+  public long getSelectedFilesCount() {
+    return fileDataList.stream().filter(FileData::isSelected).count();
+  }
+
   private void updateOkButton() {
-    long selectedCount = fileDataList.stream().filter(FileData::isSelected).count();
+    long selectedCount = getSelectedFilesCount();
     int maxFiles = ConversionConfig.getMaxFiles();
     setOKActionEnabled(selectedCount > 0 && selectedCount <= maxFiles);
     if (selectedCount > maxFiles) {
@@ -165,7 +169,7 @@ public class ConfirmationDialog extends DialogWrapper {
         System.out.println("Format not supported: " + extension);
         SwingUtilities.invokeLater(
             () -> {
-              fileData.setStatus("Unsupported format");
+              fileData.setStatus("Error: Unsupported format " + extension);
               tableModel.fireTableRowsUpdated(index, index);
             });
       }

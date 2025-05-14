@@ -60,7 +60,6 @@ public class TwelveMonkeysWebPConverter extends AbstractWebPConverter {
         new File(inputFile.getParent(), getFileNameWithoutExtension(inputFile) + "." + FORMAT);
 
     try {
-      // Read the input image
       BufferedImage inputImage = ImageIO.read(inputFile);
       if (inputImage == null) {
         return new ConversionResult(
@@ -72,7 +71,6 @@ public class TwelveMonkeysWebPConverter extends AbstractWebPConverter {
             "Failed to read input image, format may not be supported");
       }
 
-      // Get WebP writer
       Iterator<ImageWriter> writers = ImageIO.getImageWritersByFormatName(FORMAT);
       if (!writers.hasNext()) {
         return new ConversionResult(
@@ -81,14 +79,11 @@ public class TwelveMonkeysWebPConverter extends AbstractWebPConverter {
 
       ImageWriter writer = writers.next();
 
-      // Configure output
       try (FileImageOutputStream output = new FileImageOutputStream(outputFile)) {
         writer.setOutput(output);
 
-        // Configure compression
         ImageWriteParam writeParam = writer.getDefaultWriteParam();
         if (writeParam.canWriteCompressed()) {
-          // If the writer supports compression settings
           try {
             writeParam.setCompressionMode(ImageWriteParam.MODE_EXPLICIT);
             writeParam.setCompressionQuality(0.8f); // 80% quality
@@ -98,11 +93,9 @@ public class TwelveMonkeysWebPConverter extends AbstractWebPConverter {
           }
         }
 
-        // Write the image
         writer.write(null, new IIOImage(inputImage, null, null), writeParam);
         writer.dispose(); // Clean up resources
 
-        // Check if the file was created successfully
         if (!outputFile.exists() || outputFile.length() == 0) {
           return new ConversionResult(
               false,
@@ -113,7 +106,6 @@ public class TwelveMonkeysWebPConverter extends AbstractWebPConverter {
               "Output file was not created or is empty");
         }
 
-        // Return successful result
         var result =
             new ConversionResult(
                 true, inputFile, outputFile, inputFile.length(), outputFile.length(), null);

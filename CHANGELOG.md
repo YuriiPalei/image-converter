@@ -3,13 +3,14 @@
 ## [1.1.0] 
 
 ### Added
-- Unit tests for core logic of the plugin.
+- Added support for IDE version 2025.2.*
+- Added support of native conversion for PNG and JPEG images.
 
 ### Fixed
 - Fixed the issue with converting from JPEG format.
 
 ### Changed
-- Language was changed from Kotlin to Java.
+- Migration from Kotlin to Java.
 
 ## [1.0.4]
 ### Added
