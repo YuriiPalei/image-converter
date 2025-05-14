@@ -35,6 +35,7 @@ dependencies {
     implementation("com.twelvemonkeys.imageio:imageio-jpeg:3.12.0")
     implementation("com.twelvemonkeys.imageio:imageio-bmp:3.12.0")
     implementation("com.twelvemonkeys.imageio:imageio-tiff:3.12.0")
+    implementation("org.sejda.imageio:webp-imageio:0.1.6")
 
     compileOnly("org.projectlombok:lombok:1.18.38")
     annotationProcessor("org.projectlombok:lombok:1.18.38")
@@ -130,6 +131,14 @@ kover {
     }
 }
 
+sourceSets {
+    main {
+        resources {
+            srcDirs("src/main/resources")
+        }
+    }
+}
+
 tasks {
     wrapper {
         gradleVersion = providers.gradleProperty("gradleVersion").get()
@@ -138,6 +147,15 @@ tasks {
     publishPlugin {
         dependsOn(patchChangelog)
     }
+
+    processResources {
+        duplicatesStrategy = DuplicatesStrategy.INCLUDE
+
+        from("src/main/resources") {
+            include("custom-native/**")
+        }
+    }
+
 }
 
 intellijPlatformTesting {

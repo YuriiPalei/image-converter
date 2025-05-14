@@ -7,18 +7,19 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-import palei.yurii.imageconverter.model.ConversionResult;
+
 import palei.yurii.imageconverter.core.converter.ImageConverter;
-import palei.yurii.imageconverter.core.converter.WebPConverter;
+import palei.yurii.imageconverter.core.converter.webp.HybridWebPConverter;
+import palei.yurii.imageconverter.model.ConversionResult;
 import palei.yurii.imageconverter.model.ConversionStrategy;
 
 public class ConversionServiceImpl implements ConversionService {
   private final ExecutorService executorService;
-  private final ImageConverter webpConverter;
+  private final ImageConverter imageConverter;
 
   public ConversionServiceImpl() {
     this.executorService = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
-    this.webpConverter = new WebPConverter();
+    this.imageConverter = new HybridWebPConverter();
   }
 
   @Override
@@ -33,7 +34,7 @@ public class ConversionServiceImpl implements ConversionService {
             executorService.submit(
                 () -> {
                   if ("webp".equalsIgnoreCase(targetFormat)) {
-                    return webpConverter.convert(file, strategy);
+                    return imageConverter.convert(file, strategy);
                   }
                   return new ConversionResult(
                       false, file, null, file.length(), 0L, "Unsupported format: " + targetFormat);
@@ -60,13 +61,13 @@ public class ConversionServiceImpl implements ConversionService {
 
   @Override
   public boolean isFormatSupported(String format) {
-    var supportedFormats = webpConverter.getSupportedFormats();
+    var supportedFormats = imageConverter.getSupportedFormats();
     return supportedFormats.contains(format.toLowerCase());
   }
 
   @Override
   public List<String> getSupportedFormats() {
-    return webpConverter.getSupportedFormats();
+    return imageConverter.getSupportedFormats();
   }
 
   @Override
