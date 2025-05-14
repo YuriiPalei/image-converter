@@ -37,6 +37,8 @@ dependencies {
     implementation("com.twelvemonkeys.imageio:imageio-tiff:3.12.0")
     implementation("org.sejda.imageio:webp-imageio:0.1.6")
 
+    implementation("org.jetbrains:marketplace-zip-signer:0.1.8")
+
     compileOnly("org.projectlombok:lombok:1.18.38")
     annotationProcessor("org.projectlombok:lombok:1.18.38")
 
@@ -59,6 +61,7 @@ intellijPlatform {
     pluginConfiguration {
         name = providers.gradleProperty("pluginName")
         version = providers.gradleProperty("pluginVersion")
+        id = providers.gradleProperty("pluginId")
 
         // Extract the <!-- Plugin description --> section from README.md and provide for the plugin's manifest
         description = providers.fileContents(layout.projectDirectory.file("README.md")).asText.map {
@@ -93,8 +96,8 @@ intellijPlatform {
     }
 
     signing {
-        certificateChain = providers.environmentVariable("CERTIFICATE_CHAIN")
-        privateKey = providers.environmentVariable("PRIVATE_KEY")
+        certificateChainFile = file("CERTIFICATE_CHAIN")
+        privateKeyFile = file("PRIVATE_KEY")
         password = providers.environmentVariable("PRIVATE_KEY_PASSWORD")
     }
 

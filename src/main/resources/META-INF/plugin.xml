@@ -1,5 +1,5 @@
 <idea-plugin>
-    <id>palei.yurii.imageconverter</id>
+    <id>palei.yurii.image-converter</id>
     <name>Image to WebP Converter</name>
     <vendor email="poley.yuri@gmail.com">Yurii Palei</vendor>
     <depends>com.intellij.modules.platform</depends>
