@@ -56,8 +56,8 @@
 - Batch file processing for up to 5 files.
 - File size preview and automatic file system refresh.
 
-[Unreleased]: https://github.com/YuriiPalei/image-converter/compare/v1.1.0...HEAD
-[1.1.1]: https://github.com/YuriiPalei/image-converter/compare/v1.0.4...v1.1.1
+[Unreleased]: https://github.com/YuriiPalei/image-converter/compare/v1.1.1...HEAD
+[1.1.1]: https://github.com/YuriiPalei/image-converter/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/YuriiPalei/image-converter/compare/v1.0.4...v1.1.0
 [1.0.4]: https://github.com/YuriiPalei/image-converter/compare/v1.0.3...v1.0.4
 [1.0.3]: https://github.com/YuriiPalei/image-converter/compare/v1.0.2...v1.0.3
