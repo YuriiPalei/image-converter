@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## [1.1.1]
+
+### Added
+
+- Added support for IDE version 2025.3.*
+
 ## [1.1.0]
 
 ### Added
@@ -51,6 +57,7 @@
 - File size preview and automatic file system refresh.
 
 [Unreleased]: https://github.com/YuriiPalei/image-converter/compare/v1.1.0...HEAD
+[1.1.1]: https://github.com/YuriiPalei/image-converter/compare/v1.0.4...v1.1.1
 [1.1.0]: https://github.com/YuriiPalei/image-converter/compare/v1.0.4...v1.1.0
 [1.0.4]: https://github.com/YuriiPalei/image-converter/compare/v1.0.3...v1.0.4
 [1.0.3]: https://github.com/YuriiPalei/image-converter/compare/v1.0.2...v1.0.3
