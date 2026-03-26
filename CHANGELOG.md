@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## [1.1.2]
+
+### Added
+
+- Added support for IDE version 2026.1.*
+
 ## [1.1.1]
 
 ### Added
